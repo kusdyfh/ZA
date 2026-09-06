@@ -1,0 +1,1555 @@
+// ZA Store API — Prisma schema
+//
+// Epic 2 (Identity & Access Management Core) is the first epic to
+// introduce Prisma — Epic 1 (Project Foundation) deliberately validated
+// DATABASE_URL without consuming it. See docs/epics/EPIC-02-*.md.
+//
+// This schema implements Role/Permission/RolePermission as first-class,
+// data-driven models rather than the AdminRole enum sketched in
+// docs/03-DATABASE-SCHEMA.md — a deliberate, disclosed evolution.
+// See docs/v2/adr/0011-data-driven-rbac-schema.md.
+//
+// Epic 3A (Commerce Core) adds Store (per docs/v2/adr/0006) and the
+// Catalog taxonomy — Category/Brand/Collection/Tag/Product — all
+// storeId-scoped per docs/v2/adr/0006 and docs/v2/adr/0012. Deliberately
+// excluded from this epic: ProductVariant, ProductMedia, Color, Size,
+// Review, StockMovement, and the Product.searchVector projection — see
+// docs/epics/EPIC-03A-COMPLETION-REPORT.md.
+//
+// Epic 3B (Product Experience & Merchandising) adds Color/Size/
+// ProductVariant (storeId-scoped per docs/v2/adr/0013), ProductMedia,
+// ProductSpecification, ProductRelation (not storeId-scoped — pure child/
+// join tables, see ADR 0013), and Product.highlights/richContent.
+// Still excluded: Inventory/stock, Reviews, Search indexing.
+//
+// Epic 4 (Inventory & Stock Management) adds Warehouse (storeId-scoped
+// per docs/v2/adr/0014), VariantStock (the per-variant-per-warehouse
+// stock ledger — deliberately not a scalar on ProductVariant, see ADR
+// 0014), StockMovement (immutable audit ledger), and StockReservation
+// (per docs/v2/adr/0001's reservation lifecycle). Still excluded: Orders/
+// Checkout/Cart (StockReservation.cartId is a plain opaque string, not
+// an FK — Cart doesn't exist yet), background-job scheduling for the
+// reservation-expiry sweep (ADR 0003 — the sweep's logic is built as a
+// use-case; wiring it to a repeatable job is deferred), Reviews, Search.
+//
+// Epic 5 (Orders & Checkout Core) adds Cart/CartItem (guest-only — no
+// customerId; see docs/v2/adr/0015) and Order/OrderItem/
+// OrderStatusHistory/OrderNote. Per ADR 0015: Order carries no
+// customerId/shippingAddressId FK at all (no Customer/Address table
+// exists yet — contact/address are pure snapshot columns per ADR 0004,
+// with nothing live upstream of them); paymentMethod/paymentStatus/
+// discountTotal/shippingFee are flat, structurally-minimal fields, not
+// the Payment/Coupon/Shipping bounded contexts (none of which exist
+// yet); OrderItem.stockReservationId is a real FK into Inventory's
+// StockReservation (one physical schema — bounded-context separation is
+// an application-layer discipline here, not a database split). Still
+// excluded: Customer accounts, real payment gateway integration, Coupons,
+// Shipping rate computation, the return-request window/approval workflow
+// (the RETURNED status is reachable; its request/approval process is
+// deferred to a future Returns epic), Reviews, Search.
+//
+// Epic 6 (API Layer) and Epic 7 (Authentication & Authorization) added no
+// new tables of their own beyond Epic 7's RefreshToken/LoginHistory/
+// PasswordResetToken (all AdminUser-scoped).
+//
+// Epic 8 (Customer Accounts) adds Customer (storeId-scoped, correctly
+// following ADR 0006 — unlike AdminUser's disclosed gap),
+// CustomerAddress, CustomerRefreshToken (a separate rotation table from
+// Epic 7's, with its own JWT secrets — see docs/v2/adr/0018),
+// WishlistItem (references Product directly, not ProductVariant, per
+// docs/product/14-WISHLIST.md), and Review (moderated:
+// PENDING/APPROVED/REJECTED). `Order.customerId` is now a nullable,
+// additive FK (`onDelete: SetNull`) — `Cart` itself is deliberately
+// unchanged; a customer's cart is just their own permanent `cartToken`
+// reused through the exact same guest-cart machinery ADR 0018 §3
+// describes. `Product.averageRating`/`reviewCount` were deliberately
+// NOT added — computed live from `Review` instead (ADR 0018 §6). Still
+// excluded: account anonymization/deletion, customer password
+// reset/session-management/login-history (ADR 0018 §2), real-time
+// order-customer linking at checkout (ADR 0018 §4), Coupons, Shipping,
+// Search.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Mirrors @za/types' ActorType (packages/types/src/actor.ts) — kept in
+/// sync by convention (Prisma enums can't import a TS enum directly).
+/// See docs/v2/adr/0005-actor-reference-model.md.
+enum ActorType {
+  ADMIN
+  CUSTOMER
+  SYSTEM
+}
+
+/// A fixed, seeded role per docs/05-ROADMAP.md's RBAC permission matrix
+/// (Super Admin, Manager, Warehouse, Sales, Customer Support). `key` is
+/// the stable machine identifier; `isSystem` marks the five seeded roles
+/// as non-deletable — custom roles (per
+/// docs/v2/12-OPEN-QUESTIONS.md) are a future extension, not built here.
+model Role {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  name        String
+  description String?
+  isSystem    Boolean @default(true)
+
+  permissions RolePermission[]
+  users       AdminUser[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("roles")
+}
+
+/// A single grantable capability, keyed `<module>.<action>` (e.g.
+/// "products.manage", "orders.refund") — see
+/// docs/epics/EPIC-02-COMPLETION-REPORT.md for the full seeded set and
+/// its mapping to the RBAC matrix.
+model Permission {
+  id          String  @id @default(cuid())
+  key         String  @unique
+  module      String
+  action      String
+  description String?
+
+  roles RolePermission[]
+
+  createdAt DateTime @default(now())
+
+  @@index([module])
+  @@map("permissions")
+}
+
+/// Many-to-many grant between Role and Permission.
+model RolePermission {
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  roleId       String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  permissionId String
+  grantedAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+/// Staff account. Exactly one Role per user, per the frozen business
+/// rule in docs/product/23-ROLES-PERMISSIONS.md ("role assignment is
+/// Super-Admin-only", one role per staff member) — Role being a data
+/// model rather than an enum does not change that business rule.
+///
+/// createdBy/updatedBy use the polymorphic Actor shape from
+/// docs/v2/adr/0005-actor-reference-model.md: the actor is SYSTEM for
+/// seed-created rows, ADMIN once a real Super Admin creates the row
+/// (Login/JWT — and therefore a real "current actor" — is out of scope
+/// for this epic, so every row created in this epic is actor=SYSTEM;
+/// the shape is ready for the epic that adds authenticated actors).
+model AdminUser {
+  id           String  @id @default(cuid())
+  name         String
+  email        String  @unique
+  passwordHash String
+  isActive     Boolean @default(true)
+
+  role   Role   @relation(fields: [roleId], references: [id])
+  roleId String
+
+  deactivatedAt DateTime?
+
+  createdByActorId   String?
+  createdByActorType ActorType @default(SYSTEM)
+  updatedByActorId   String?
+  updatedByActorType ActorType @default(SYSTEM)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens       RefreshToken[]
+  loginHistory        LoginHistory[]
+  passwordResetTokens PasswordResetToken[]
+
+  @@index([roleId])
+  @@map("admin_users")
+}
+
+// ---------------------------------------------------------------------
+// Authentication & Authorization (Epic 7)
+// ---------------------------------------------------------------------
+
+/// One row per issued refresh token — the server-side half of ADR 0017's
+/// rotation-with-reuse-detection design. `jti` (not the raw JWT) is the
+/// lookup key: the JWT's signature is the actual unforgeable secret, so
+/// storing `jti` in cleartext costs nothing (see ADR 0017's "Alternatives
+/// Considered" on why this isn't hashed, unlike PasswordResetToken).
+/// `familyId` stays constant across every rotation descended from one
+/// login; reusing an already-`revokedAt` token revokes the whole family.
+model RefreshToken {
+  id            String    @id @default(cuid())
+  jti           String    @unique
+  familyId      String
+  adminUser     AdminUser @relation(fields: [adminUserId], references: [id])
+  adminUserId   String
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  replacedByJti String?
+  userAgent     String?
+  ipAddress     String?
+
+  @@index([adminUserId])
+  @@index([familyId])
+  @@map("refresh_tokens")
+}
+
+/// Every login attempt, success or failure — ADR 0017 §5.
+/// `emailAttempted` is a plain string, not tied to `adminUserId`, because
+/// a failed attempt against an unknown email has no AdminUser row to
+/// reference. `failureReason` is internal-only (never returned by the
+/// API — docs/product/01-AUTHENTICATION.md's anti-enumeration rule).
+model LoginHistory {
+  id             String     @id @default(cuid())
+  adminUser      AdminUser? @relation(fields: [adminUserId], references: [id])
+  adminUserId    String?
+  emailAttempted String
+  success        Boolean
+  failureReason  String?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime   @default(now())
+
+  @@index([adminUserId])
+  @@index([createdAt])
+  @@map("login_history")
+}
+
+/// Single-use, 30-minute password reset tokens (ADR 0017 §4). Unlike
+/// RefreshToken.jti, `tokenHash` IS the hash of the actual bearer secret
+/// (SHA-256) — recovering the raw token from this row must not be
+/// possible, since possessing it is sufficient to reset the password.
+model PasswordResetToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  adminUser   AdminUser @relation(fields: [adminUserId], references: [id])
+  adminUserId String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([adminUserId])
+  @@map("password_reset_tokens")
+}
+
+// ---------------------------------------------------------------------
+// Commerce Core (Epic 3A) — Store + Catalog
+// ---------------------------------------------------------------------
+
+/// Prepares the SaaS extension point per docs/v2/adr/0006 — exactly one
+/// row exists after this epic, behavior is identical to a single-tenant
+/// deployment. Not itself in Epic 3A's named scope, but required by the
+/// already-frozen ADR 0006 for every table this epic introduces.
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+model Store {
+  id              String      @id @default(cuid())
+  name            String
+  domain          String      @unique
+  defaultLocale   String      @default("en")
+  defaultCurrency String      @default("IQD")
+  status          StoreStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  categories  Category[]
+  brands      Brand[]
+  collections Collection[]
+  tags        Tag[]
+  products    Product[]
+  colors      Color[]
+  sizes       Size[]
+  variants    ProductVariant[]
+  warehouses  Warehouse[]
+  carts       Cart[]
+  orders      Order[]
+  customers   Customer[]
+
+  // Epic 11 — Commerce Services (ADR 0023/0024/0025).
+  outboxEvents            OutboxEvent[]
+  notifications           Notification[]
+  notificationPreferences NotificationPreference[]
+  cmsPages                CmsPage[]
+
+  // Epic 12 — Payments & Shipping (ADR 0026/0027).
+  paymentSessions      PaymentSession[]
+  paymentTransactions  PaymentTransaction[]
+  paymentStatusHistory PaymentStatusHistory[]
+  refunds              Refund[]
+  shippingZones        ShippingZone[]
+  shippingMethods      ShippingMethod[]
+  shippingRates        ShippingRate[]
+  shipments            Shipment[]
+
+  @@map("stores")
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/// Self-referential tree, max depth 3 (root=0, 1, 2) — enforced at the
+/// application layer (CategoryHierarchyPolicy), not the schema, since a
+/// stored depth column would need recomputation across an entire
+/// reparented subtree. See docs/product/04-CATEGORIES.md.
+model Category {
+  id          String  @id @default(cuid())
+  store       Store   @relation(fields: [storeId], references: [id])
+  storeId     String
+  name        String
+  slug        String
+  description String?
+  sortOrder   Int     @default(0)
+  isActive    Boolean @default(true)
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  parentId String?
+  children Category[] @relation("CategoryTree")
+
+  metaTitle       String?
+  metaDescription String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+  @@index([parentId])
+  @@map("categories")
+}
+
+/// No product spec document exists for Brand (unlike Category/Collection)
+/// — kept deliberately minimal: v1's schema sketch plus storeId scoping,
+/// nothing more invented. No logoUrl — that's a Media concern, out of
+/// this epic's scope.
+model Brand {
+  id          String  @id @default(cuid())
+  store       Store   @relation(fields: [storeId], references: [id])
+  storeId     String
+  name        String
+  slug        String
+  description String?
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, slug])
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("brands")
+}
+
+/// Curated, cross-category merchandising groups — see
+/// docs/product/05-COLLECTIONS.md. Schedule window (startsAt/endsAt) and
+/// "excludes archived products" are read-time computed rules
+/// (Collection.isCurrentlyLive(), ListCollectionProductsUseCase's filter),
+/// never stored state — nothing to keep in sync, nothing to background-job.
+model Collection {
+  id          String    @id @default(cuid())
+  store       Store     @relation(fields: [storeId], references: [id])
+  storeId     String
+  name        String
+  slug        String
+  description String?
+  isActive    Boolean   @default(true)
+  startsAt    DateTime?
+  endsAt      DateTime?
+
+  metaTitle       String?
+  metaDescription String?
+
+  products CollectionProduct[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, slug])
+  @@index([storeId])
+  @@map("collections")
+}
+
+model CollectionProduct {
+  collection   Collection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  collectionId String
+  product      Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId    String
+  sortOrder    Int        @default(0)
+
+  @@id([collectionId, productId])
+  @@map("collection_products")
+}
+
+/// No product spec document exists for Tag either — kept minimal for the
+/// same reason as Brand.
+model Tag {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+  name    String
+  slug    String
+
+  products ProductTag[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, slug])
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("tags")
+}
+
+model ProductTag {
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  tag       Tag     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId     String
+
+  @@id([productId, tagId])
+  @@map("product_tags")
+}
+
+/// The catalog's core aggregate — see docs/product/03-PRODUCTS.md. This
+/// epic deliberately does NOT include ProductVariant/ProductMedia/Color/
+/// Size/searchVector — see docs/epics/EPIC-03A-ARCHITECTURE-COMPLIANCE.md
+/// for what that means for the Active-status publish checklist (the full
+/// "at least one variant, at least one image with alt text" gate cannot
+/// be enforced until those domains exist).
+///
+/// price/discountPrice use `@db.Decimal(12, 2)`, not v1's sketched
+/// `@db.Money` — Postgres' native `money` type is locale/formatting-
+/// dependent and not suited to application-level currency arithmetic;
+/// `Decimal` is the standard, precise choice and is what Prisma's `Money`
+/// value object (domain/value-objects/money.vo.ts) is built against.
+model Product {
+  id               String        @id @default(cuid())
+  store            Store         @relation(fields: [storeId], references: [id])
+  storeId          String
+  name             String
+  slug             String
+  sku              String
+  shortDescription String?
+  description      String?
+  status           ProductStatus @default(DRAFT)
+
+  price         Decimal  @db.Decimal(12, 2)
+  discountPrice Decimal? @db.Decimal(12, 2)
+  currencyCode  String   @default("IQD")
+
+  category   Category @relation(fields: [categoryId], references: [id])
+  categoryId String
+  brand      Brand?   @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  brandId    String?
+
+  isFeatured   Boolean @default(false)
+  isBestSeller Boolean @default(false)
+  isNewArrival Boolean @default(false)
+  isGiftBox    Boolean @default(false)
+
+  metaTitle       String?
+  metaDescription String?
+  ogImageUrl      String?
+
+  /// Ordered bullet points (docs/epics/EPIC-03B "Product Highlights") — a
+  /// plain string array rather than a child table, since entries have no
+  /// fields of their own beyond text + position (position = array index).
+  highlights  String[] @default([])
+  /// Long-form HTML content block (docs/epics/EPIC-03B "Rich Content") —
+  /// distinct from `description` (plain merchandising copy); this is the
+  /// PDP's expandable full-detail section. A structured block-based CMS
+  /// editor is out of scope here — see docs/16-HOMEPAGE-BUILDER.md for that.
+  richContent String?
+
+  tags           ProductTag[]
+  collections    CollectionProduct[]
+  variants       ProductVariant[]
+  media          ProductMedia[]
+  specifications ProductSpecification[]
+
+  relatedFrom ProductRelation[] @relation("ProductRelationsFrom")
+  relatedTo   ProductRelation[] @relation("ProductRelationsTo")
+
+  /// Epic 8 (Customer Accounts) — additive. No averageRating/reviewCount
+  /// columns here by design (ADR 0018 §6); those are computed live from
+  /// `reviews` at read time instead.
+  wishlistedBy WishlistItem[]
+  reviews      Review[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, slug])
+  @@unique([storeId, sku])
+  @@index([storeId])
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([isBestSeller])
+  @@index([isNewArrival])
+  @@map("products")
+}
+
+// ---------------------------------------------------------------------
+// Product Experience & Merchandising (Epic 3B)
+// ---------------------------------------------------------------------
+
+/// Store-scoped per docs/v2/adr/0013 — same independent-unique-key test
+/// ADR 0012 applied to Brand/Tag.
+model Color {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id])
+  storeId String
+  name    String
+  hexCode String
+
+  variants ProductVariant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, name])
+  @@index([storeId])
+  @@map("colors")
+}
+
+model Size {
+  id        String @id @default(cuid())
+  store     Store  @relation(fields: [storeId], references: [id])
+  storeId   String
+  label     String
+  sortOrder Int    @default(0)
+
+  variants ProductVariant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, label])
+  @@index([storeId])
+  @@map("sizes")
+}
+
+/// The sellable unit — see docs/product/03-PRODUCTS.md. Deliberately has
+/// NO stock/quantity field: Inventory is out of scope for this epic (and
+/// Epic 3A); the next Inventory epic adds stock movements against this
+/// table's rows. `colorId`/`sizeId` are both nullable — a product with no
+/// color/size distinction still needs exactly one variant to satisfy the
+/// "cannot go Active without a variant" rule (ProductPolicy).
+model ProductVariant {
+  id            String   @id @default(cuid())
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId     String
+  store         Store    @relation(fields: [storeId], references: [id])
+  storeId       String
+  sku           String
+  barcode       String?
+  color         Color?   @relation(fields: [colorId], references: [id])
+  colorId       String?
+  size          Size?    @relation(fields: [sizeId], references: [id])
+  sizeId        String?
+  priceOverride Decimal? @db.Decimal(12, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stocks       VariantStock[]
+  movements    StockMovement[]
+  reservations StockReservation[]
+  cartItems    CartItem[]
+  orderItems   OrderItem[]
+
+  @@unique([storeId, sku])
+  @@unique([storeId, barcode])
+  @@index([storeId])
+  @@index([productId])
+  @@map("product_variants")
+}
+
+enum ProductMediaType {
+  IMAGE
+  VIDEO
+}
+
+/// No storeId — pure child table, scoped transitively via productId, per
+/// docs/v2/adr/0013 (same test as CollectionProduct/ProductTag in Epic 3A).
+/// `altText` is nullable at the column level (a VIDEO never needs one) but
+/// required by DTO validation and ProductPolicy whenever type is IMAGE —
+/// "every image requires descriptive alt text" (docs/product/03-PRODUCTS.md).
+/// `isCover`: at most one true per product, and only an IMAGE row may be
+/// the cover — both enforced by ProductPolicy.validateMediaSet(), not the
+/// schema (Prisma/Postgres can't express a conditional partial-unique
+/// constraint this cleanly without a raw SQL migration, which would be
+/// over-engineering for a single-writer admin flow).
+model ProductMedia {
+  id        String           @id @default(cuid())
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  type      ProductMediaType
+  url       String
+  altText   String?
+  sortOrder Int              @default(0)
+  isCover   Boolean          @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@map("product_media")
+}
+
+/// A structured spec sheet (e.g. "Material" / "65% Polyester, 35% Cotton")
+/// — no storeId, same reasoning as ProductMedia.
+model ProductSpecification {
+  id        String  @id @default(cuid())
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  label     String
+  value     String
+  sortOrder Int     @default(0)
+
+  @@index([productId])
+  @@map("product_specifications")
+}
+
+enum ProductRelationType {
+  RELATED
+  CROSS_SELL
+  UP_SELL
+}
+
+/// Admin-curated (not algorithmic) — matches how Collections are curated
+/// in Epic 3A rather than rule-based. A same-category "related products"
+/// fallback is a reasonable future enhancement, not required by this
+/// epic's brief and not built here. No storeId — scoped transitively via
+/// productId/relatedProductId, both already store-validated by the
+/// use-case before any repository call.
+model ProductRelation {
+  id               String              @id @default(cuid())
+  product          Product             @relation("ProductRelationsFrom", fields: [productId], references: [id], onDelete: Cascade)
+  productId        String
+  relatedProduct   Product             @relation("ProductRelationsTo", fields: [relatedProductId], references: [id], onDelete: Cascade)
+  relatedProductId String
+  type             ProductRelationType
+  sortOrder        Int                 @default(0)
+
+  @@unique([productId, relatedProductId, type])
+  @@index([productId, type])
+  @@map("product_relations")
+}
+
+// ---------------------------------------------------------------------
+// Inventory & Stock Management (Epic 4)
+// ---------------------------------------------------------------------
+
+/// Single warehouse today, extensible later — see docs/v2/adr/0014.
+model Warehouse {
+  id        String  @id @default(cuid())
+  store     Store   @relation(fields: [storeId], references: [id])
+  storeId   String
+  name      String
+  code      String
+  isDefault Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  stocks       VariantStock[]
+  movements    StockMovement[]
+  reservations StockReservation[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+  @@map("warehouses")
+}
+
+/// The stock ledger's current-value row per (variant, warehouse) — see
+/// docs/v2/adr/0014 for why this is its own table rather than a scalar
+/// on ProductVariant. No storeId: no independent business key, scoped
+/// transitively through variantId/warehouseId (both already
+/// store-validated by the use-case before any repository call).
+model VariantStock {
+  id                String         @id @default(cuid())
+  variant           ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId         String
+  warehouse         Warehouse      @relation(fields: [warehouseId], references: [id])
+  warehouseId       String
+  quantity          Int            @default(0)
+  lowStockThreshold Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([variantId, warehouseId])
+  @@index([variantId])
+  @@index([warehouseId])
+  @@map("variant_stocks")
+}
+
+enum StockMovementType {
+  RECEIVE
+  SALE
+  ADJUSTMENT
+  RETURN
+  DAMAGED
+}
+
+enum StockAdjustmentReason {
+  STOCKTAKE_CORRECTION
+  DAMAGED
+  FOUND
+  OTHER
+}
+
+/// Immutable, append-only audit ledger — see docs/product/06-INVENTORY.md
+/// "Business Constraints" (stock is never silently edited outside this
+/// mechanism). The only code path that writes this table also updates
+/// VariantStock.quantity in the same transaction
+/// (VariantStockRepository.applyMovement) — there is no other way to
+/// change a variant's stock. `quantity` is the signed delta actually
+/// applied to VariantStock.quantity (0 for DAMAGED, since a damaged
+/// return is never added back to sellable stock — see
+/// docs/product/06-INVENTORY.md "Returns & Damaged Stock").
+model StockMovement {
+  id             String                 @id @default(cuid())
+  variant        ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId      String
+  warehouse      Warehouse              @relation(fields: [warehouseId], references: [id])
+  warehouseId    String
+  type           StockMovementType
+  quantity       Int
+  resultingStock Int
+  reason         StockAdjustmentReason?
+  note           String?
+
+  actorId   String?
+  actorType ActorType @default(SYSTEM)
+
+  createdAt DateTime @default(now())
+
+  @@index([variantId])
+  @@index([warehouseId])
+  @@map("stock_movements")
+}
+
+enum StockReservationStatus {
+  ACTIVE
+  CONFIRMED
+  RELEASED
+  EXPIRED
+}
+
+/// Per docs/v2/adr/0001 — a short-lived hold created at checkout
+/// submission, never at add-to-cart. `cartId` is a plain opaque string,
+/// not an FK to Cart — Inventory stays independent of Checkout's schema
+/// in that direction; the dependency runs the other way instead
+/// (OrderItem.stockReservationId references this table — see
+/// docs/v2/adr/0015). No storeId: scoped transitively via
+/// variantId/warehouseId.
+model StockReservation {
+  id          String                 @id @default(cuid())
+  variant     ProductVariant         @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId   String
+  warehouse   Warehouse              @relation(fields: [warehouseId], references: [id])
+  warehouseId String
+  cartId      String
+  quantity    Int
+  status      StockReservationStatus @default(ACTIVE)
+  expiresAt   DateTime
+
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+  releasedAt  DateTime?
+
+  orderItem OrderItem?
+
+  @@index([variantId, status])
+  @@index([status, expiresAt])
+  @@map("stock_reservations")
+}
+
+/// Guest-only per docs/v2/adr/0015 — no customerId column yet (no
+/// Customer bounded context exists). Identified solely by `guestToken`,
+/// a randomly-generated opaque value, so a bare @unique suffices (unlike
+/// every (storeId, code) composite this codebase otherwise uses for
+/// business-chosen keys — see ADR 0015 §1).
+model Cart {
+  id         String @id @default(cuid())
+  store      Store  @relation(fields: [storeId], references: [id])
+  storeId    String
+  guestToken String @unique
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([storeId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String         @id @default(cuid())
+  cart      Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  cartId    String
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId String
+  quantity  Int            @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, variantId])
+  @@index([cartId])
+  @@map("cart_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum PaymentMethod {
+  COD
+  CARD
+}
+
+enum PaymentStatus {
+  PENDING
+  /// COD's real starting state (Epic 12, ADR 0026) — cash not yet
+  /// collected. Distinct from PENDING so a stalled card checkout and an
+  /// in-progress COD delivery are never confused in a status filter.
+  AWAITING_COLLECTION
+  PAID
+  PARTIALLY_REFUNDED
+  REFUNDED
+  FAILED
+}
+
+/// The Order aggregate root (docs/06-DDD-BOUNDED-CONTEXTS.md) — OrderItem/
+/// OrderStatusHistory/OrderNote are all inside its consistency boundary;
+/// nothing outside this module writes those rows directly. Per ADR 0015:
+/// no customerId/shippingAddressId FK at all — customer/address fields
+/// are pure snapshots (per ADR 0004), since no Customer/Address table
+/// exists yet. paymentMethod/paymentStatus are flat (no Payment/Refund
+/// normalization yet); discountTotal/shippingFee are structurally
+/// present but not backed by real Coupon/Shipping domains yet.
+model Order {
+  id          String      @id @default(cuid())
+  store       Store       @relation(fields: [storeId], references: [id])
+  storeId     String
+  orderNumber String
+  status      OrderStatus @default(PENDING)
+
+  /// Epic 8 (Customer Accounts) — nullable, additive. Never set by
+  /// PlaceOrderUseCase itself (checkout stays fully guest, per
+  /// docs/v2/adr/0018 §4); populated only by the email-match backfill
+  /// that runs at customer register/login time.
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+
+  customerNameSnapshot  String
+  customerEmailSnapshot String
+  customerPhoneSnapshot String
+
+  shippingFullName    String
+  shippingPhone       String
+  shippingLine1       String
+  shippingLine2       String?
+  shippingCity        String
+  shippingGovernorate String
+  shippingCountry     String
+
+  subtotal      Decimal @db.Decimal(12, 2)
+  discountTotal Decimal @default(0) @db.Decimal(12, 2)
+  shippingFee   Decimal @default(0) @db.Decimal(12, 2)
+  taxTotal      Decimal @default(0) @db.Decimal(12, 2)
+  total         Decimal @db.Decimal(12, 2)
+  currencyCode  String  @default("IQD")
+
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+
+  /// Epic 12 (ADR 0027) — which rate was quoted/chosen at checkout.
+  /// Nullable + onDelete: SetNull: an order's shipping-fee snapshot
+  /// already fully describes what the customer paid even if the rate is
+  /// later deleted/renamed; this FK is for admin traceability only.
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  shippingMethodId String?
+
+  cancelReason String?
+
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+  notes         OrderNote[]
+
+  // Epic 12 — Payments & Shipping (ADR 0026/0027). All additive/nullable;
+  // no existing Order field changes type or meaning.
+  paymentSession       PaymentSession?
+  paymentTransactions  PaymentTransaction[]
+  paymentStatusHistory PaymentStatusHistory[]
+  refunds              Refund[]
+  shipment             Shipment?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, orderNumber])
+  @@index([storeId, status])
+  @@index([customerId])
+  @@map("orders")
+}
+
+/// variantId is nullable with onDelete: SetNull — per ADR 0004/0015,
+/// display never depends on the live variant still existing; the
+/// snapshot fields are always sufficient. stockReservationId is a real,
+/// required 1:1 FK into Inventory's StockReservation (see ADR 0015 §4) —
+/// CancelOrderUseCase uses it to decide release-vs-restock per line item.
+model OrderItem {
+  id      String @id @default(cuid())
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+
+  variant   ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  variantId String?
+
+  stockReservation   StockReservation @relation(fields: [stockReservationId], references: [id])
+  stockReservationId String           @unique
+
+  productNameSnapshot String
+  skuSnapshot         String
+  unitPrice           Decimal @db.Decimal(12, 2)
+  quantity            Int
+  lineTotal           Decimal @db.Decimal(12, 2)
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+/// The customer-visible (simplified) and staff-visible (full) timeline —
+/// docs/product/07-ORDERS.md. Immutable once written, per this epic's
+/// "every order is immutable except allowed status transitions" rule —
+/// nothing ever updates a row here, only appends.
+model OrderStatusHistory {
+  id        String      @id @default(cuid())
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String
+  status    OrderStatus
+  note      String?
+  actorId   String?
+  actorType ActorType   @default(SYSTEM)
+  createdAt DateTime    @default(now())
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+/// isInternal = true: staff-only. isInternal = false: customer-visible.
+model OrderNote {
+  id         String    @id @default(cuid())
+  order      Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId    String
+  body       String
+  isInternal Boolean   @default(true)
+  actorId    String?
+  actorType  ActorType @default(SYSTEM)
+  createdAt  DateTime  @default(now())
+
+  @@index([orderId])
+  @@map("order_notes")
+}
+
+// ---------------------------------------------------------------------
+// Customer Accounts (Epic 8)
+// ---------------------------------------------------------------------
+
+/// Storefront customer credentials + profile, unified per docs/v2/adr/0018
+/// §1 (a deliberate deviation from docs/06-DDD-BOUNDED-CONTEXTS.md's v1
+/// split of credentials into Identity) — kept entirely separate from
+/// AdminUser. Correctly storeId-scoped per ADR 0006, unlike AdminUser's
+/// disclosed gap. `cartToken` is a permanent, customer-owned equivalent
+/// of a guest's Cart.guestToken (ADR 0018 §3) — generated once at
+/// registration, reused for the customer's entire lifetime so every
+/// existing guest-cart endpoint/use-case works unchanged.
+model Customer {
+  id             String  @id @default(cuid())
+  store          Store   @relation(fields: [storeId], references: [id])
+  storeId        String
+  email          String
+  passwordHash   String
+  firstName      String
+  lastName       String
+  phone          String?
+  marketingOptIn Boolean @default(false)
+  cartToken      String  @unique
+
+  addresses     CustomerAddress[]
+  wishlistItems WishlistItem[]
+  reviews       Review[]
+  orders        Order[]
+  refreshTokens CustomerRefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([storeId, email])
+  @@map("customers")
+}
+
+/// Multiple per customer; exactly one `isDefault` at a time, enforced at
+/// the application layer (CustomerPolicy), not a DB constraint — same
+/// discipline as every other "exactly one of N" invariant in this
+/// codebase. Never referenced by Order — an order's shipping fields are
+/// always a point-in-time snapshot (ADR 0004), so editing/deleting an
+/// address never touches any past order (docs/product/02-CUSTOMERS.md).
+model CustomerAddress {
+  id          String   @id @default(cuid())
+  customer    Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String
+  fullName    String
+  phone       String
+  line1       String
+  line2       String?
+  city        String
+  governorate String
+  country     String
+  isDefault   Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([customerId])
+  @@map("customer_addresses")
+}
+
+/// References Product directly, not ProductVariant, per
+/// docs/product/14-WISHLIST.md ("wishlist references products directly").
+/// Availability ("Sold Out" / "no longer available") is computed at read
+/// time from the product's current status/stock, never stored here.
+model WishlistItem {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
+  @@index([customerId])
+  @@map("wishlist_items")
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// One review per (customer, product) — re-submitting edits the existing
+/// row in place (docs/product/13-REVIEWS.md) rather than erroring or
+/// creating a duplicate. `averageRating`/`reviewCount` are deliberately
+/// NOT stored on Product — computed live from APPROVED rows here (ADR
+/// 0018 §6). `moderatedByActorId`/`moderatedByActorType` use the same
+/// polymorphic Actor shape as every other moderation-style action in this
+/// codebase (ADR 0005) — always an ADMIN once moderated.
+model Review {
+  id         String       @id @default(cuid())
+  customer   Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  product    Product      @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  rating     Int
+  body       String?
+  status     ReviewStatus @default(PENDING)
+
+  moderatedByActorId   String?
+  moderatedByActorType ActorType?
+  moderatedAt          DateTime?
+  rejectionReason      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerId, productId])
+  @@index([productId, status])
+  @@map("reviews")
+}
+
+/// The Customer-side equivalent of Epic 7's RefreshToken — same
+/// rotation-with-reuse-detection design (ADR 0017 §1-2), deliberately a
+/// separate table with its own JWT secrets rather than a shared,
+/// polymorphic one (ADR 0018 §2): a leaked customer-token secret must
+/// never let someone forge a staff access token, or vice versa.
+model CustomerRefreshToken {
+  id            String    @id @default(cuid())
+  jti           String    @unique
+  familyId      String
+  customer      Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId    String
+  issuedAt      DateTime  @default(now())
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  replacedByJti String?
+
+  @@index([customerId])
+  @@index([familyId])
+  @@map("customer_refresh_tokens")
+}
+
+// ---------------------------------------------------------------------
+// Epic 11 — Commerce Services: Event Architecture & Background Jobs
+// (ADR 0023), Notifications (ADR 0024), CMS (ADR 0025).
+// ---------------------------------------------------------------------
+
+enum OutboxEventStatus {
+  PENDING
+  PROCESSING
+  DELIVERED
+  FAILED
+}
+
+/// The transactional outbox (ADR 0002/0023) — written in the *same*
+/// Prisma transaction as the business row it describes (see each
+/// publisher's repository), so the event is durably recorded if and only
+/// if the business write committed. Deliberately not FK-linked to any
+/// specific aggregate table: `aggregateId`/`aggregateType` are plain
+/// strings because a single generic ledger, not one outbox per bounded
+/// context, is what the outbox-relay job polls.
+model OutboxEvent {
+  id            String            @id @default(cuid())
+  store         Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId       String
+  eventType     String
+  aggregateId   String
+  aggregateType String
+  payload       Json
+  status        OutboxEventStatus @default(PENDING)
+  attempts      Int               @default(0)
+  lastError     String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@map("outbox_events")
+}
+
+/// A durable archive for a BullMQ job that exhausted its own retry
+/// budget (ADR 0003 §"Dead Letter Queue") — no `storeId`, since this is
+/// operational/queue-level data, not store-scoped business data.
+model FailedJobLog {
+  id         String   @id @default(cuid())
+  queueName  String
+  jobName    String
+  payload    Json
+  error      String
+  failedAt   DateTime
+  archivedAt DateTime @default(now())
+
+  @@map("failed_job_logs")
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  SUPPRESSED
+}
+
+/// One row per attempted notification (ADR 0024) — always written, even
+/// when a `NotificationPreference` suppresses the email, so History is a
+/// complete record of "this happened," not just of what was emailed.
+/// `recipientType`/`recipientId` reuse the polymorphic `ActorType`
+/// pattern (ADR 0005) already used for `OrderStatusHistory.actorType`
+/// etc., rather than a new notification-specific enum.
+model Notification {
+  id             String              @id @default(cuid())
+  store          Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId        String
+  type           String
+  channel        NotificationChannel
+  recipientType  ActorType
+  recipientId    String?
+  recipientEmail String?
+  subject        String
+  body           String
+  status         NotificationStatus  @default(PENDING)
+  sentAt         DateTime?
+  error          String?
+  createdAt      DateTime            @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([recipientType, recipientId])
+  @@map("notifications")
+}
+
+/// Defaults to enabled — a row only exists once an admin or customer
+/// opts out (ADR 0024 §"Preferences").
+model NotificationPreference {
+  id        String              @id @default(cuid())
+  store     Store               @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId   String
+  ownerType ActorType
+  ownerId   String
+  type      String
+  channel   NotificationChannel @default(EMAIL)
+  enabled   Boolean             @default(true)
+
+  @@unique([storeId, ownerType, ownerId, type, channel])
+  @@map("notification_preferences")
+}
+
+enum CmsPageStatus {
+  DRAFT
+  PUBLISHED
+}
+
+/// One model for five fixed page slugs (ADR 0025) — About/Contact/
+/// Privacy/Terms share `content` (plain/markdown body); FAQ alone uses
+/// `faqItems` (a JSON array of `{question, answer}`, null everywhere
+/// else) rather than a second table for a handful of Q&A pairs that
+/// never need their own query surface.
+model CmsPage {
+  id              String        @id @default(cuid())
+  store           Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId         String
+  slug            String
+  title           String
+  content         String
+  faqItems        Json?
+  status          CmsPageStatus @default(DRAFT)
+  metaTitle       String?
+  metaDescription String?
+  ogImageUrl      String?
+  publishedAt     DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([storeId, slug])
+  @@map("cms_pages")
+}
+
+// ---------------------------------------------------------------------------
+// Epic 12 — Payments & Shipping (ADR 0026/0027). Closes the gap ADR 0015 §2/§5
+// deferred: Order.paymentMethod/paymentStatus were flat placeholder columns,
+// Order.shippingFee was a hardcoded constant. Both enums keep their existing
+// meaning — additive values only, per ADR 0015 §5's pre-authorized
+// "flat columns become a denormalized summary/cache" compatibility rule.
+// ---------------------------------------------------------------------------
+
+enum PaymentProvider {
+  COD
+  STRIPE
+  MANUAL
+}
+
+enum PaymentSessionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  EXPIRED
+}
+
+/// Reifies "a pending checkout" for card payments (ADR 0026) — per
+/// docs/product/07-ORDERS.md, no Order/OrderItem exists until Stripe
+/// confirms success, so everything PlaceOrderUseCase would normally
+/// compute in one request lives here instead, spanning two: the initial
+/// checkout-submission request and the later, separate webhook request.
+model PaymentSession {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  provider          PaymentProvider
+  status            PaymentSessionStatus @default(PENDING)
+  providerSessionId String? // e.g. Stripe Checkout Session id
+
+  /// Everything ConfirmCardPaymentUseCase needs to materialize the Order:
+  /// customer/address snapshot, priced line items (each already carrying
+  /// its stockReservationId), computed subtotal/shippingFee/total — the
+  /// same shape PlaceOrderUseCase already assembles for COD.
+  pendingOrderSnapshot Json
+
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId String? @unique
+
+  amount       Decimal @db.Decimal(12, 2)
+  currencyCode String  @default("IQD")
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions PaymentTransaction[]
+
+  @@index([storeId, status])
+  @@index([providerSessionId])
+  @@map("payment_sessions")
+}
+
+enum PaymentTransactionType {
+  AUTHORIZATION
+  CAPTURE
+  REFUND
+  FAILURE
+}
+
+enum PaymentTransactionStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+/// An append-only ledger of every payment attempt/outcome (ADR 0026) — a
+/// COD capture, a Stripe capture, a Stripe webhook failure, a refund.
+/// Never updated once written; a correction is a new row, mirroring
+/// OrderStatusHistory's immutability convention.
+model PaymentTransaction {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  paymentSession   PaymentSession? @relation(fields: [paymentSessionId], references: [id], onDelete: SetNull)
+  paymentSessionId String?
+
+  order   Order?  @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  orderId String?
+
+  provider          PaymentProvider
+  type              PaymentTransactionType
+  status            PaymentTransactionStatus
+  amount            Decimal                  @db.Decimal(12, 2)
+  currencyCode      String                   @default("IQD")
+  providerReference String? // Stripe payment_intent/charge id
+  failureReason     String?
+
+  createdAt DateTime @default(now())
+
+  refunds Refund[]
+
+  @@index([storeId, orderId])
+  @@index([paymentSessionId])
+  @@map("payment_transactions")
+}
+
+/// Payment status tracked separately from order status (docs/product
+/// /12-PAYMENTS.md) — its own timeline, mirroring OrderStatusHistory's
+/// exact shape (append-only, actor-attributed) rather than repurposing it.
+model PaymentStatusHistory {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+
+  status    PaymentStatus
+  note      String?
+  actorId   String?
+  actorType ActorType     @default(SYSTEM)
+  createdAt DateTime      @default(now())
+
+  @@index([orderId])
+  @@map("payment_status_history")
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+/// RefundPolicy.assertRefundable requires order.status be CANCELLED or
+/// RETURNED (ADR 0026) — refunds are a consequence of cancellation/return
+/// in this product's model, not an arbitrary balance adjustment. `method`
+/// is "STRIPE" (a real reversed transaction) or "STORE_CREDIT" (COD has no
+/// electronic transaction to reverse, per docs/product/12-PAYMENTS.md).
+model Refund {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String
+
+  paymentTransaction   PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull)
+  paymentTransactionId String?
+
+  amount Decimal      @db.Decimal(12, 2)
+  reason String
+  status RefundStatus @default(PENDING)
+  method String // "STRIPE" | "STORE_CREDIT"
+
+  requestedByActorId   String?
+  requestedByActorType ActorType @default(SYSTEM)
+  completedAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([storeId, orderId])
+  @@map("refunds")
+}
+
+/// Flat, admin-configured regions (docs/product/11-SHIPPING.md's explicit
+/// v1 scope boundary — no geocoding). `governorates` matches values already
+/// stored in Order.shippingGovernorate.
+model ShippingZone {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  name         String
+  governorates String[]
+  isActive     Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rates ShippingRate[]
+
+  @@unique([storeId, name])
+  @@map("shipping_zones")
+}
+
+/// minDays/maxDays back a "3-5 business days" range display — never an
+/// exact calendar date (docs/product/11-SHIPPING.md).
+model ShippingMethod {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  name     String
+  minDays  Int
+  maxDays  Int
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rates     ShippingRate[]
+  orders    Order[]
+  shipments Shipment[]
+
+  @@unique([storeId, name])
+  @@map("shipping_methods")
+}
+
+/// The join of exactly one zone and one method (ADR 0027) — most stores
+/// configure one method x N zones today, but the shape supports more
+/// without a schema change later. freeShippingThreshold is evaluated
+/// against (subtotal - discountTotal), per docs/product/11-SHIPPING.md.
+model ShippingRate {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  zone   ShippingZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  zoneId String
+
+  method   ShippingMethod @relation(fields: [methodId], references: [id], onDelete: Cascade)
+  methodId String
+
+  fee                   Decimal  @db.Decimal(12, 2)
+  freeShippingThreshold Decimal? @db.Decimal(12, 2)
+  isActive              Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([zoneId, methodId])
+  @@map("shipping_rates")
+}
+
+enum ShipmentStatus {
+  PENDING
+  LABEL_CREATED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+/// One shipment per order (@unique orderId — no split shipments, matching
+/// this product's Orders model never supporting partial fulfillment
+/// either). Created automatically at PENDING the moment an Order is
+/// created (ADR 0027) — every order has exactly one shipment row to attach
+/// tracking to, no "does this order have a shipment yet" branch anywhere.
+model Shipment {
+  id      String @id @default(cuid())
+  store   Store  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  storeId String
+
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId String @unique
+
+  shippingMethod   ShippingMethod? @relation(fields: [shippingMethodId], references: [id], onDelete: SetNull)
+  shippingMethodId String?
+
+  status ShipmentStatus @default(PENDING)
+
+  carrierName    String?
+  trackingNumber String?
+  trackingUrl    String?
+  labelUrl       String?
+
+  dispatchedAt DateTime?
+  deliveredAt  DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  trackingEvents ShipmentTrackingEvent[]
+
+  @@index([storeId, status])
+  @@map("shipments")
+}
+
+/// Immutable once written (mirrors OrderStatusHistory) — the customer- and
+/// staff-visible tracking timeline.
+model ShipmentTrackingEvent {
+  id         String         @id @default(cuid())
+  shipment   Shipment       @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  shipmentId String
+  status     ShipmentStatus
+  note       String?
+  location   String?
+  actorId    String?
+  actorType  ActorType      @default(SYSTEM)
+  createdAt  DateTime       @default(now())
+
+  @@index([shipmentId])
+  @@map("shipment_tracking_events")
+}

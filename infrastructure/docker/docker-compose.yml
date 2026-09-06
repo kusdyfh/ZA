@@ -1,0 +1,51 @@
+name: za-store
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-za_store}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-za_store_dev_password}
+      POSTGRES_DB: ${POSTGRES_DB:-za_store}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-za_store}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # AOF persistence, per docs/v2/adr/0009-operational-architecture.md —
+    # holds real background-job state (BullMQ, ADR 0003/0023), not just
+    # disposable caches, so the default RDB-only snapshotting isn't
+    # durable enough. Consumed by apps/api's za-worker process
+    # (`pnpm --filter @za/api worker`, src/worker.main.ts — a second
+    # bootstrap in the same package, not a separate apps/worker package;
+    # see ADR 0023 for why).
+    command: redis-server --appendonly yes
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mailpit:
+    image: axllent/mailpit:latest
+    restart: unless-stopped
+    ports:
+      - '${MAILPIT_SMTP_PORT:-1025}:1025'
+      - '${MAILPIT_UI_PORT:-8025}:8025'
+
+volumes:
+  postgres_data:
+  redis_data:

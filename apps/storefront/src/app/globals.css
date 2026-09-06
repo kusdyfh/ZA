@@ -1,0 +1,65 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface-page: theme('colors.white');
+    --surface-raised: theme('colors.white');
+    --surface-sunken: theme('colors.neutral.50');
+    --text-primary: theme('colors.neutral.900');
+    --text-secondary: theme('colors.neutral.500');
+    --border-default: theme('colors.neutral.200');
+  }
+
+  [data-theme='dark'] {
+    --surface-page: theme('colors.neutral.900');
+    --surface-raised: theme('colors.neutral.800');
+    --surface-sunken: theme('colors.neutral.900');
+    --text-primary: theme('colors.neutral.50');
+    --text-secondary: theme('colors.neutral.400');
+    --border-default: theme('colors.neutral.700');
+  }
+
+  body {
+    background-color: var(--surface-page);
+    color: var(--text-primary);
+  }
+}
+
+/**
+ * Epic 13 (ADR 0028 §7) — brand motion respects prefers-reduced-motion as a
+ * hard requirement, not a nice-to-have: every ambient float/twinkle loop and
+ * entrance transform is disabled, leaving only near-instant opacity fades.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-brand-float,
+  .animate-brand-float-slow,
+  .animate-brand-twinkle {
+    animation: none !important;
+  }
+
+  .animate-brand-fade-up {
+    animation-duration: 0.01ms !important;
+    animation-name: brand-fade-in-only !important;
+  }
+}
+
+@keyframes brand-fade-in-only {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/**
+ * A soft paper-grain texture (ADR 0028 §9's "painterly, not clinically flat"
+ * atmosphere) — a subtle repeating dot pattern, not an image asset, kept
+ * cheap and lazy-free by construction. Opt-in via `.brand-texture-paper`.
+ */
+.brand-texture-paper {
+  background-image: radial-gradient(circle, rgba(58, 42, 46, 0.035) 1px, transparent 1px);
+  background-size: 14px 14px;
+}

@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --surface-page: theme('colors.neutral.50');
+    --surface-raised: theme('colors.white');
+    --surface-sunken: theme('colors.neutral.100');
+    --text-primary: theme('colors.neutral.900');
+    --text-secondary: theme('colors.neutral.500');
+    --border-default: theme('colors.neutral.200');
+  }
+
+  [data-theme='dark'] {
+    --surface-page: theme('colors.neutral.900');
+    --surface-raised: theme('colors.neutral.800');
+    --surface-sunken: theme('colors.neutral.900');
+    --text-primary: theme('colors.neutral.50');
+    --text-secondary: theme('colors.neutral.400');
+    --border-default: theme('colors.neutral.700');
+  }
+
+  body {
+    background-color: var(--surface-page);
+    color: var(--text-primary);
+  }
+}

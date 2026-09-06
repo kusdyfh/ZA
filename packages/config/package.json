@@ -1,0 +1,8 @@
+{
+  "name": "@za/config",
+  "version": "0.1.0",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "./tailwind-preset.js",
+  "files": ["tailwind-preset.js"]
+}

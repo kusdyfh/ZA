@@ -1,0 +1,10 @@
+export const SHIPMENT_STATUS = {
+  PENDING: 'PENDING',
+  LABEL_CREATED: 'LABEL_CREATED',
+  IN_TRANSIT: 'IN_TRANSIT',
+  DELIVERED: 'DELIVERED',
+  FAILED: 'FAILED',
+  RETURNED: 'RETURNED',
+} as const;
+
+export type ShipmentStatusValue = (typeof SHIPMENT_STATUS)[keyof typeof SHIPMENT_STATUS];
