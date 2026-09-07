@@ -1,0 +1,8 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Sara · Layer: hair-front
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <path d="M78 58c-4 14-3 30 2 42h40c5-12 6-28 2-42-8 6-10 16-8 24-9 4-19 4-28 0 2-8 0-18-8-24Z" fill="#D88AAD" />
+</svg>

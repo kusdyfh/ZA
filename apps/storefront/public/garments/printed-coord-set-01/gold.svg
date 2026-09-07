@@ -1,0 +1,119 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Garment: printed-coord-set-01 · Variant: gold
+  Authored once against the shared character rig (viewBox 200x320) —
+  aligns on any of the ten character bases without adjustment. One file
+  per colour: never a CSS filter recolor of a shared asset.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="printed-coord-set-01, gold">
+  <path d="M76 62 L100 78 L124 62 C133 70 136 82 132 92 L146 100 138 116 128 108 C133 128 133 145 122 152 L78 152 C67 145 67 128 72 108 L62 116 54 100 68 92 C64 82 67 70 76 62 Z" fill="#F8D98A" />
+  <path d="M76 62 L100 78 L124 62 C133 70 136 82 132 92 L146 100 138 116 128 108 C133 128 133 145 122 152 L78 152 C67 145 67 128 72 108 L62 116 54 100 68 92 C64 82 67 70 76 62 Z" fill="#000000" opacity="0.07" />
+  <rect x="86" y="98" width="14" height="16" rx="2" fill="#00000022" />
+  <path d="M78 155 L122 155 L124 200 L120 300 L106 300 L104 210 L96 210 L94 300 L80 300 L76 200 Z" fill="#F8D98A" />
+  <path d="M78 155 L122 155 L124 200 L120 300 L106 300 L104 210 L96 210 L94 300 L80 300 L76 200 Z" fill="#000000" opacity="0.07" />
+  <circle cx="60" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="60" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="74" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="88" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="102" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="116" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="130" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="70" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="86" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="102" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="118" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="134" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="150" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="166" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="182" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="198" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="214" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="230" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="246" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="262" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="278" r="2" fill="#ffffff" opacity="0.35" />
+  <circle cx="144" cy="294" r="2" fill="#ffffff" opacity="0.35" />
+</svg>

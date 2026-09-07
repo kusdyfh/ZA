@@ -1,0 +1,8 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Lily · Layer: hair-front
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <path d="M77 21c5-9 14-13 23-13s18 4 23 13c-7-4-15-2-23-2s-16-2-23 2Z" fill="#5A3A2E" />
+</svg>

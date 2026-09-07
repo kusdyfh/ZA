@@ -1,0 +1,27 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Noor · Layer: body
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Noor">
+  <path d="M82 195C76 225 74 255 78 283 77 293 79 303 82 313L96 313C97 301 96 289 94 273 96 248 97 220 95 197Z" fill="#E3AE84" />
+  <path d="M118 195C124 225 126 255 122 283 123 293 121 303 118 313L104 313C103 301 104 289 106 273 104 248 103 220 105 197Z" fill="#E3AE84" />
+  <path d="M78 313h20l3 6-26 0Z" fill="#7B4D6D" />
+  <path d="M100 313h20l3 6-26 0Z" fill="#7B4D6D" />
+  <path d="M76 62C69 76 67 87 70 96 65 116 67 134 82 152 67 168 65 180 68 197L132 197C135 180 133 168 118 152 133 134 135 116 130 96 133 87 131 76 124 62 109 55 91 55 76 62Z" fill="#F1D9C4" opacity="0.9" />
+  <path d="M78 66C58 84 51 108 56 132 51 152 55 170 65 183" stroke="#E3AE84" stroke-width="15" stroke-linecap="round" fill="none" />
+  <path d="M122 66C142 84 149 108 144 132 149 152 145 170 135 183" stroke="#E3AE84" stroke-width="15" stroke-linecap="round" fill="none" />
+  <ellipse cx="64" cy="186" rx="7.5" ry="9.5" fill="#E3AE84" />
+  <ellipse cx="136" cy="186" rx="7.5" ry="9.5" fill="#E3AE84" />
+  <path d="M92 44h16v18h-16Z" fill="#E3AE84" />
+  <circle cx="100" cy="35" r="24" fill="#E3AE84" />
+  <path d="M84 26.5c3-1.8 6.5-1.8 9.5-.6M106.5 25.9c3-1.2 6.5-1.2 9.5.6" stroke="#2b2226" stroke-width="1.5" stroke-linecap="round" fill="none" />
+  <path d="M85 34.5c2.3-2.4 7.7-2.4 10 0-2.3 2.6-7.7 2.6-10 0Z" fill="#2b2226" />
+  <circle cx="88" cy="33.6" r="1" fill="#fff" opacity=".85" />
+  <path d="M105 34.5c2.3-2.4 7.7-2.4 10 0-2.3 2.6-7.7 2.6-10 0Z" fill="#2b2226" />
+  <circle cx="108" cy="33.6" r="1" fill="#fff" opacity=".85" />
+  <path d="M99 38.5c0 2-.8 3-.8 3" stroke="#a9704a" stroke-width="1" stroke-linecap="round" fill="none" opacity=".7" />
+  <path d="M94 45c3.2 1.7 8.8 1.7 12 0-2.8 3-9.2 3-12 0Z" fill="#C46A82" />
+  <circle cx="83" cy="41" r="4.5" fill="#E58FA7" opacity=".32" />
+  <circle cx="117" cy="41" r="4.5" fill="#E58FA7" opacity=".32" />
+</svg>

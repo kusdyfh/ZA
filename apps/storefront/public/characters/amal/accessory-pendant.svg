@@ -1,0 +1,8 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Amal · Layer: accessory (pendant)
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+<path d="M92 88q8 6 16 0" stroke="#F8D98A" stroke-width="1.4" fill="none" /><circle cx="100" cy="92" r="2.6" fill="#F8D98A" />
+</svg>

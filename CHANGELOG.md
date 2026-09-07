@@ -120,6 +120,75 @@ namespaced `brand-*`; `packages/config/tailwind-preset.js` and every
   via lint, type-check, full test suite, and live comparison against its
   pre-epic screenshots.
 
+#### Follow-up — ZA Dress-Up Commerce System (2026-09-07)
+
+Not a new epic: this narrowly reopens Epic 13 to build the interactive
+character/garment compositing architecture that §9's disclosed scope
+decision explicitly deferred ("asset production is future-epic work").
+`DressShowcase`'s fixed, non-interactive product slides are unchanged and
+still used nowhere else; this is new, additive component tree alongside it.
+
+- **Architecture**: a reusable character "rig" — every character shares
+  identical body coordinates and one fixed neutral pose (arms straight at
+  the sides), so a single garment asset fits any of the ten bases without
+  per-character adjustment. Each character is three transparent layers
+  (`hairBack`/`body`/`hairFront`) plus an optional accessory; a garment is
+  composited between `body` and `hairFront` so hair correctly falls in
+  front of a collar. **Never a CSS filter recolor** — every colour of every
+  product is its own authored transparent asset.
+- **New components** (`apps/storefront/src/components/brand/dress-up/`):
+  `CharacterStage` (layer compositor), `GarmentLayer` (the one swappable
+  layer), `CharacterSelector`/`ColorSelector` (prev/next + swatches, same
+  conditional-nav and native-scroll-for-swipe conventions as the existing
+  `CharacterCarousel`/`DressShowcase`), `OutfitInfo` (real product
+  name/price, links straight to `/products/[slug]`), and `CharacterDressUp`
+  (the orchestrator, wired into the homepage's "Dress Showcase" section in
+  place of the old fixed-slide version).
+- **New data layer** (`apps/storefront/src/features/characters/`): typed
+  against the app's real `Product`/`ProductVariant`/`Color` types, not
+  invented ones — `CharacterOutfitAssignment` is exactly the shape a future
+  Admin Character/Outfit CMS would read and write, so that CMS is additive
+  work whenever it's scoped, not a rework of this layer.
+- **All ten characters implemented**: Rose (Fashion), Noor (Medical), Lily
+  (Lifestyle), Maya (Student), Farah (Professional), Amal (Minimal), Dana
+  (Active), Yara (Creative), Hana (Campaign), Sara (Modest) — each with a
+  real product (Scrub Set 01, Lab Coat 01, Knit Dress 01, Campus Set 01,
+  Tailored Blazer Set 01, Silk Slip Dress 01, Active Set 01, Printed
+  Co-ord Set 01, Statement Coat 01, Modest Maxi Set 01) in 3–4 colours
+  each, every colour its own authored SVG asset (63 new character-layer
+  files, 30 new garment-variant files, all under `apps/storefront/public/`).
+  Character/garment artwork is placeholder illustration — same disclosed
+  scope as Epic 13 §9 — pending real production art; every component reads
+  asset URLs as data, so replacing placeholders touches no component code.
+- **Verified live**, not just via unit tests: `pnpm dev` + a real browser
+  session confirmed all 10 characters cycle correctly and wrap around, each
+  showing her own correct product/price/colours; colour swatches swap the
+  garment asset instantly; "Shop this look" links to each character's real
+  product page; the section is fully usable at a 390px mobile viewport
+  (touch tap on arrows and swatches, no horizontal overflow).
+- **Tooling fix, disclosed**: this was also the first commit ever made
+  against this repository's pre-commit hook, which turned out to be
+  broken for *any* change to *any* package — root `lint-staged` ran a bare
+  `eslint --fix` from the repo root, where no `eslint.config.js` exists
+  (only per-workspace ones do). A root config composing all six workspace
+  configs was tried and reverted (it hits a hard, unrelated incompatibility
+  in `eslint-config-next`'s legacy `@rushstack/eslint-patch` bridge when
+  loaded outside its own app's directory). Fixed instead with
+  `lint-staged.config.js`, which runs each staged file's lint through its
+  own workspace's config/CWD — unrelated to this feature, but blocking, so
+  fixed alongside it.
+- **Tests**: 2 new component-test files (`character-dress-up.roster.spec`,
+  15 assertions against the real 10-character data) plus a new
+  `features/characters/data.spec.ts` (asset-uniqueness and
+  colour/variant-integrity checks) — 24 new tests, all passing alongside
+  the full existing `apps/storefront` suite (60/60). Lint/type-check clean;
+  production build compiles (the 5 pre-existing CMS-page prerender
+  failures — `/about`, `/faq`, `/privacy-policy`, `/terms-of-service`,
+  `/sitemap.xml` — are unrelated: they fetch from the live API at build
+  time, and no API/Docker is available in this environment; confirmed via
+  a from-scratch investigation that none of them import anything this
+  follow-up touched).
+
 ### Epic 12 — Payments & Shipping (2026-08-05)
 
 The full Payments and Shipping bounded contexts, plus the Orders-integration

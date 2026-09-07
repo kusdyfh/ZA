@@ -1,0 +1,10 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Amal · Layer: hair-back
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <circle cx="100" cy="30" r="27" fill="#6b5850" />
+<path d="M76 33c-3 21-2 42 4 60" stroke="#6b5850" stroke-width="9" stroke-linecap="round" fill="none" />
+<path d="M124 33c3 21 2 42-4 60" stroke="#6b5850" stroke-width="9" stroke-linecap="round" fill="none" />
+</svg>
