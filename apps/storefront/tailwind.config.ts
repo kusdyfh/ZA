@@ -79,10 +79,14 @@ const config: Config = {
         'brand-glow': '0 0 40px rgba(255, 201, 77, 0.35)',
       },
       backgroundImage: {
-        'brand-gradient-hero': 'linear-gradient(135deg, #E85FA0 0%, #F084B9 45%, #FFD966 100%)',
-        'brand-gradient-section': 'linear-gradient(180deg, #FFFBF3 0%, #FFF6FA 100%)',
-        'brand-gradient-newsletter': 'linear-gradient(120deg, #E85FA0 0%, #A87BC9 100%)',
-        'brand-gradient-spotlight': 'radial-gradient(circle, rgba(255,233,168,0.9) 0%, rgba(255,233,168,0) 70%)',
+        'brand-gradient-hero':
+          'linear-gradient(135deg, #E85FA0 0%, #F084B9 45%, #FFD966 100%)',
+        'brand-gradient-section':
+          'linear-gradient(180deg, #FFFBF3 0%, #FFF6FA 100%)',
+        'brand-gradient-newsletter':
+          'linear-gradient(120deg, #E85FA0 0%, #A87BC9 100%)',
+        'brand-gradient-spotlight':
+          'radial-gradient(circle, rgba(255,233,168,0.9) 0%, rgba(255,233,168,0) 70%)',
       },
       spacing: {
         'section-y': 'clamp(4rem, 8vw, 9rem)',
@@ -104,12 +108,20 @@ const config: Config = {
           '0%, 100%': { opacity: '0.4', transform: 'scale(0.9)' },
           '50%': { opacity: '1', transform: 'scale(1.1)' },
         },
+        'brand-fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
       },
       animation: {
         'brand-float': 'brand-float 6s ease-in-out infinite',
         'brand-float-slow': 'brand-float-slow 8s ease-in-out infinite',
         'brand-fade-up': 'brand-fade-up 0.6s ease-out both',
         'brand-twinkle': 'brand-twinkle 3s ease-in-out infinite',
+        // Character System dress-up: garment/colour swap cross-fade — opacity
+        // only, no position shift, so it reads as an instant colour change
+        // rather than a re-entrance (Character System spec, "transitions").
+        'brand-fade-in': 'brand-fade-in 0.2s ease-out both',
       },
     },
   },

@@ -1,0 +1,13 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Rose (01) · Layer: accessory (signature ribbon)
+  Rendered above the garment and hair-front layers.
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <g transform="translate(85,140) scale(0.3)">
+    <path d="M46 30 8 8c-4 12-4 24 0 36 15-5 30-12 38-14Z" fill="#E58FA7" opacity=".92" />
+    <path d="M54 30 92 8c4 12 4 24 0 36-15-5-30-12-38-14Z" fill="#E58FA7" />
+    <rect x="42" y="21" width="16" height="18" rx="4" fill="#E58FA7" opacity=".96" />
+  </g>
+</svg>
