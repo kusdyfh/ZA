@@ -1,0 +1,8 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Amal · Layer: hair-front
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <path d="M100 10c-13 0-20 8-22 16 8-5 16-4 22-4s14-1 22 4c-2-8-9-16-22-16Z" fill="#6b5850" />
+</svg>

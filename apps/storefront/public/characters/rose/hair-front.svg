@@ -1,0 +1,12 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Rose (01) · Layer: hair-front
+  The fringe and side strands that fall in front of the shoulder/collar
+  line — rendered above the garment layer so hair reads over a collar.
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <path d="M72 34c-3 22-2 44 4 62" stroke="#3A2A2E" stroke-width="10" stroke-linecap="round" fill="none" />
+  <path d="M128 34c3 22 2 44-4 62" stroke="#3A2A2E" stroke-width="10" stroke-linecap="round" fill="none" />
+  <path d="M77 21c5-9 14-13 23-13s18 4 23 13c-7-4-15-2-23-2s-16-2-23 2Z" fill="#3A2A2E" />
+</svg>

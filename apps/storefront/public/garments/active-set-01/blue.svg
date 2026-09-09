@@ -1,0 +1,11 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Garment: active-set-01 · Variant: blue
+  Authored once against the shared character rig (viewBox 200x320) —
+  aligns on any of the ten character bases without adjustment. One file
+  per colour: never a CSS filter recolor of a shared asset.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="active-set-01, blue">
+  <path d="M76 62 L100 78 L124 62 C133 76 135 90 130 100 C133 120 133 140 122 152 C133 170 133 220 128 300 L108 300 C106 240 106 190 100 152 C94 190 94 240 92 300 L72 300 C67 220 67 170 78 152 C67 140 67 120 70 100 C65 90 67 76 76 62 Z" fill="#35577A" />
+  <path d="M76 62 L100 78 L124 62 C133 76 135 90 130 100 C133 120 133 140 122 152 C133 170 133 220 128 300 L108 300 C106 240 106 190 100 152 C94 190 94 240 92 300 L72 300 C67 220 67 170 78 152 C67 140 67 120 70 100 C65 90 67 76 76 62 Z" fill="#000000" opacity="0.07" />
+</svg>

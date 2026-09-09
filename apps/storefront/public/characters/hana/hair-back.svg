@@ -1,0 +1,10 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Hana · Layer: hair-back
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+  <circle cx="100" cy="30" r="24" fill="#2b1f1a" />
+<circle cx="72" cy="32" r="11" fill="#2b1f1a" /><circle cx="70" cy="48" r="10" fill="#2b1f1a" />
+<circle cx="128" cy="32" r="11" fill="#2b1f1a" /><circle cx="130" cy="48" r="10" fill="#2b1f1a" />
+</svg>

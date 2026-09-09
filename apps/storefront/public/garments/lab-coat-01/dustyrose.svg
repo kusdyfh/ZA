@@ -1,0 +1,11 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Garment: lab-coat-01 · Variant: dustyrose
+  Authored once against the shared character rig (viewBox 200x320) —
+  aligns on any of the ten character bases without adjustment. One file
+  per colour: never a CSS filter recolor of a shared asset.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="lab-coat-01, dustyrose">
+  <path d="M70 60 58 90 68 98 74 78 76 200 60 205 62 214 138 214 140 205 124 200 126 78 132 98 142 90 130 60 108 68 100 74 92 68Z" fill="#D88AAD" />
+  <path d="M70 60 58 90 68 98 74 78 76 200 60 205 62 214 138 214 140 205 124 200 126 78 132 98 142 90 130 60 108 68 100 74 92 68Z" fill="#000000" opacity="0.07" />
+</svg>

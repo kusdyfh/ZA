@@ -1,0 +1,8 @@
+<!--
+  ZA Character System — placeholder production asset.
+  Character: Maya · Layer: accessory (book)
+  viewBox 200x320, same 5:8 aspect as the 1000x1600 production rig.
+-->
+<svg viewBox="0 0 200 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="">
+<g transform="translate(84,132)"><rect x="0" y="0" width="20" height="26" rx="2" fill="#7B4D6D"/><rect x="3" y="4" width="14" height="2" fill="#fff" opacity=".7"/><rect x="3" y="9" width="14" height="2" fill="#fff" opacity=".7"/></g>
+</svg>
