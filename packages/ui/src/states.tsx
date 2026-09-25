@@ -8,17 +8,46 @@ interface StatePanelProps {
   description?: string;
   action?: ReactNode;
   tone?: 'neutral' | 'danger';
+  /** Override the panel's container classes (merged with the default). */
+  className?: string;
+  /** Override the icon's classes (merged with the default). */
+  iconClassName?: string;
 }
 
-function StatePanel({ icon: Icon, title, description, action, tone = 'neutral' }: StatePanelProps) {
+function StatePanel({
+  icon: Icon,
+  title,
+  description,
+  action,
+  tone = 'neutral',
+  className,
+  iconClassName,
+}: StatePanelProps) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-neutral-300 px-6 py-12 text-center dark:border-neutral-700">
+    <div
+      className={cn(
+        'flex flex-col items-center gap-2 rounded-lg border border-dashed border-neutral-300 px-6 py-12 text-center dark:border-neutral-700',
+        className,
+      )}
+    >
       <Icon
-        className={cn('h-8 w-8', tone === 'danger' ? 'text-danger-500' : 'text-neutral-400 dark:text-neutral-500')}
+        className={cn(
+          'h-8 w-8',
+          tone === 'danger'
+            ? 'text-danger-500'
+            : 'text-neutral-400 dark:text-neutral-500',
+          iconClassName,
+        )}
         aria-hidden="true"
       />
-      <p className="font-medium text-neutral-800 dark:text-neutral-100">{title}</p>
-      {description && <p className="max-w-sm text-sm text-neutral-500 dark:text-neutral-400">{description}</p>}
+      <p className="font-medium text-neutral-800 dark:text-neutral-100">
+        {title}
+      </p>
+      {description && (
+        <p className="max-w-sm text-sm text-neutral-500 dark:text-neutral-400">
+          {description}
+        </p>
+      )}
       {action && <div className="mt-2">{action}</div>}
     </div>
   );
@@ -35,7 +64,15 @@ export function ErrorState({
   description = 'Try again, or come back later.',
   action,
 }: Partial<Omit<StatePanelProps, 'icon' | 'tone'>>) {
-  return <StatePanel icon={AlertTriangle} title={title} description={description} action={action} tone="danger" />;
+  return (
+    <StatePanel
+      icon={AlertTriangle}
+      title={title}
+      description={description}
+      action={action}
+      tone="danger"
+    />
+  );
 }
 
 /**
@@ -48,5 +85,12 @@ export function ForbiddenState({
 }: {
   description?: string;
 }) {
-  return <StatePanel icon={Ban} title="Access denied" description={description} tone="danger" />;
+  return (
+    <StatePanel
+      icon={Ban}
+      title="Access denied"
+      description={description}
+      tone="danger"
+    />
+  );
 }

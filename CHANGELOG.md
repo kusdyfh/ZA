@@ -8,6 +8,246 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 13.4 — Editorial Hero Redesign (2026-09-24)
+
+The homepage's first viewport (`BrandHero`) was rebuilt from a centered,
+symmetric marketing banner into an asymmetric "editorial illustrated
+fashion experience" — explicitly not a new brand identity: no new logo,
+no new palette, no new component family. Everything is composed from
+pieces the identity system already had.
+
+- **Layout**: a two-column asymmetric split (`grid-cols-[1fr_1.05fr]` on
+  desktop) replacing the old dead-centered stack. Mobile collapses to
+  artwork first, then the small logo mark, script tagline, headline, and
+  CTA — per explicit direction, not a mechanical column-to-rows stack.
+- **Logo**: switched from the giant centered `primary` lockup to the
+  small `wordmark` variant in the corner, the "small ZA brand mark"
+  structure the brief asked for — still the same real `Logo` component
+  asset, never recreated as HTML text. The `primary` lockup stays
+  reserved for its own moment elsewhere if a future epic wants it back.
+- **Character**: `PortraitBlob` (the identity system's disclosed
+  placeholder character language, [ADR 0029] §6) scaled up and placed
+  inside the illustrated scene itself rather than in a separate card, so
+  it reads as part of the artwork.
+- **Product**: one real, live product photo (`Product.ogImageUrl`, the
+  same field `ProductCard` already uses) pinned into the scene as a
+  tilted keepsake-photo card with a `PaperTape` accent, sourced from the
+  homepage's existing `featured` products query. No fabricated preview;
+  gracefully omitted when a product has no uploaded image (true of this
+  environment's current seed data).
+- **Copy**: headline changed to "Medical wear, dressed like fashion." (a
+  short editorial statement, replacing the descriptive "Soft, modern
+  medical wear"); subtitle rewritten to drop an em dash it previously
+  contained. `brand-experience.spec.ts`'s two assertions on the old
+  headline text updated to match.
+- **Motion**: staggered entrance (`animate-brand-fade-up`, existing
+  token, incremental delays) plus the scene's existing ambient float/
+  twinkle decorations — no new animation library or keyframes added,
+  everything reuses tokens already in `tailwind.config.ts`; respects
+  `prefers-reduced-motion` via the same global override already in
+  `globals.css`.
+- **Verified live**: desktop asymmetric composition, mobile artwork-first
+  collapse with no horizontal overflow, 2-line headline wrap on mobile,
+  logo renders as the real asset, `tsc --noEmit` clean, `eslint` clean on
+  every changed file (once past this session's recurring `node_modules`
+  corruption — see Known Gap 35). The `next build`-dependent turbo
+  `type-check`/`lint` tasks could not be exercised end-to-end this pass
+  because the local API kept crashing on the same recurring corruption
+  mid-session (a different package, `lodash.isinteger`, each time);
+  direct `tsc`/`eslint` invocations on the changed files were used
+  instead to get real signal despite the environment issue.
+
+### Epic 13.3 — Homepage & PDP Structure Alignment (2026-09-24)
+
+A client-supplied site-structure outline (Home: Hero Illustration / Art
+Story Wall / 10 Products Showcase / Doll Dress-Up / Rotating Artwork /
+Footer; Product: Visual / Colors / Sizes / Story-Illustration / Add to
+Cart) drove a homepage section consolidation and a deliberate PDP
+simplification. Scope confirmed explicitly per-section before building:
+the homepage keeps every existing section (Character Showcase, Medical
+Lifestyle, Instagram grid, Newsletter, TrustBadges are untouched) and only
+adds/renames/consolidates the outline's named items; the PDP is a real,
+disclosed content removal, not an oversight.
+
+- **`ArtStoryWall`** (new, `apps/storefront/src/components/brand/
+  art-story-wall.tsx`): consolidates the former Featured Collection
+  `StorySection`, the Our Story `StorySection`, and the Brand Philosophy
+  `QuoteSection` into one gallery-wall composition — tilted, paper-taped
+  panels with real linked products, replacing three separate homepage
+  sections with one.
+- **"10 Products Showcase"**: a new `pickTenProducts()` de-duplication
+  helper pools Featured/Best-Sellers/New-Arrivals into a single curated
+  grid (capped at 10, no repeats across lists), replacing the three
+  separate `ProductShelf` sections it superseded.
+- **"Doll Dress-Up"**: the existing Dress Showcase section, renamed only
+  (component and placeholder-asset behavior unchanged — still disclosed
+  from Epic 13.2 as pending real character-illustration assets).
+- **`RotatingArtwork`** (new, `apps/storefront/src/components/brand/
+  rotating-artwork.tsx`): a purely decorative, auto-advancing carousel of
+  4 abstract brand-decorative scenes (no product data). Auto-rotates every
+  4.5s, pauses on hover/focus, respects `prefers-reduced-motion`, with
+  manual prev/next controls and a `role="tablist"` dot indicator.
+- **Product Detail Page simplified**: per explicit direction, removed
+  Breadcrumbs, the description/specifications `Accordion`, all three
+  `ProductRail`s (related/cross-sell/up-sell), and the review section —
+  narrowing the page to Product Visual → Colors/Sizes/Add to Cart → Story/
+  Illustration. The underlying components and API data are untouched and
+  still used elsewhere (e.g. `ReviewSection` stays covered by its own
+  spec); this is a presentation choice, reversible without any backend
+  change. Confirmed via production build output: the `/products/[slug]`
+  route bundle dropped from 9.39 kB to 6.75 kB.
+- **Bug fix, found during this pass's visual QA**: `home-content.tsx`'s
+  Instagram placeholder grid mapped `INSTAGRAM_TILE_TONES` (which
+  legitimately repeats `'plum'` twice for its 4-tile pattern) with
+  `key={tone}` — a real React duplicate-key warning, unrelated to this
+  epic's own changes but caught while verifying the page live. Fixed to
+  `key={`${tone}-${index}`}`.
+- **E2E spec fix**: `brand-experience.spec.ts` referenced the old "Dress
+  Showcase" heading text; updated to "Doll Dress-Up" to match the rename.
+- **Quality gates**: type-check/test/build clean across the monorepo
+  (storefront: 12 suites / 45 tests; `packages/ui`: 9 suites / 34 tests;
+  `apps/api`: 135 suites / 655 tests). Storefront Playwright E2E 16/18 —
+  the 2 failures are the same pre-existing, unrelated gaps disclosed since
+  Epic 12 (unresolvable seed-image hostname; footer/page heading
+  collision). `apps/storefront`'s `lint` task could not be verified this
+  pass — see environment note below.
+- **Environment note, not a product change**: this session hit the same
+  Windows `node_modules` file-duplication corruption disclosed in Epic
+  13.2, but this time it reproduced live and repeatedly — a transitive
+  ESLint dependency (`safe-regex-test`) reverted to a corrupted
+  `safe-regex-test(2)` duplicate within seconds of being manually fixed,
+  even with no build process running, and recurred identically after a
+  second and third fix attempt. `apps/api`'s dev server also crashed
+  independently on a corrupted `lodash.isinteger` copy, and the storefront
+  production build hit a genuinely missing (not just misnamed) `zod`
+  helper file, reconstructed from its type-only sibling pattern. This is
+  stronger evidence of live, real-time interference (most likely Windows
+  Defender's real-time protection, confirmed still enabled via
+  `Get-MpPreference`) rather than a one-time bad install — a lasting fix
+  needs an admin-level antivirus exclusion for the project folder, which
+  this session cannot grant itself.
+
+### Epic 13.2 — Storefront-Wide Brand Coverage & Visual QA (2026-09-24)
+
+A visual-audit-driven follow-up to Epic 13.1: extends the ZA Identity
+System from the Homepage/PDP/editorial pages to the storefront areas Epic
+13/13.1 had deliberately left with the shared `packages/ui` defaults —
+Shop/Category/Collection listing chrome, the filter panel, the cart drawer,
+checkout page chrome, and every empty/loading state along those paths.
+Architecture unchanged from ADR 0028/0029: every restyle is a `className`
+override at a storefront call site; the two `packages/ui` components that
+had no styling escape hatch at all (`EmptyState`/`ErrorState`'s
+`StatePanel`, and `Drawer`) gained additive `className`/`iconClassName`/
+`titleClassName` props (same pattern already established for `Accordion`/
+`Input`/`Textarea` in ADR 0028/0029) — defaults unchanged, so `apps/admin`
+(which uses neither component) is provably unaffected, confirmed via its
+own full lint/type-check/test/build pass.
+
+- **Shop, Category, and Collection listing pages**: root containers, the
+  sort/filter chrome, `FiltersPanel`'s four `Select`s + two `Input`s +
+  three `Checkbox`es, `Pagination`, and the Categories/Collections index
+  pages all now carry the `brand-*` palette in light mode while keeping
+  their existing dark-mode support completely unchanged (per ADR 0028 §7's
+  scope boundary — these pages were never meant to become fixed-light).
+- **`ProductCard`** (`apps/storefront/src/features/products/components/
+  product-card.tsx`, storefront-local, not `packages/ui` — safe to edit
+  directly): image surface, wishlist button, and price text restyled to
+  the brand palette; every listing grid across the site inherits this
+  automatically.
+- **Cart drawer and checkout**: the drawer panel, line items, and
+  buttons/inputs use `brand-*` tokens; the checkout page's five `Card`
+  panels, headings, payment radio accent color, and submit button are
+  restyled without touching any form registration, validation, or mutation
+  logic — verified via the full `cart-and-checkout.spec.ts` and
+  `track-order.spec.ts` E2E specs, both still 100% passing.
+- **Empty/loading states**: `ProductGrid`, the Cart drawer, Checkout's
+  empty-cart state, and the Categories/Collections empty states all use
+  the new `EmptyState`/`Skeleton` brand styling instead of the generic
+  neutral-dashed-box default.
+- **Disclosed, not built this pass**: the accompanying brief's "10
+  reusable characters with real per-color garment overlays" Dress-Up
+  requirement needs actual bespoke character illustration assets (matching
+  the client-supplied "Rose" character-sheet reference) — a real
+  illustration/asset-production pipeline, not a coding task, and outside
+  what this session can produce (no image-generation tool available). Per
+  explicit direction, the existing abstract-placeholder Dress Showcase from
+  Epic 13 is kept as-is rather than faked with a lower-fidelity system.
+  Similarly, the brief's Figma-as-source-of-truth workflow (design
+  variables, component sync) requires a Figma connection this session has
+  no authorization to open — the token system instead lives as documented
+  code (`tailwind.config.ts` + ADR 0028/0029), same as every prior epic.
+- **Quality gates**: full monorepo lint/type-check/test/build clean across
+  all 9 packages (2 new `packages/ui` test cases added for the
+  `Drawer`/`EmptyState` prop extensions); storefront Playwright E2E 16/18
+  (the 2 failures are the same pre-existing, unrelated gaps disclosed since
+  Epic 12 — an unresolvable seed-image hostname, and a footer/page heading
+  collision — neither touched here).
+- **Environment note, not a product change**: this session's local
+  `node_modules` had accumulated widespread Windows file-duplication
+  corruption (dozens of stray `name(1)`/`name(2)` directories across the
+  pnpm store, not limited to one package) severe enough that targeted
+  repairs stopped holding; fixed with a full `node_modules` wipe and clean
+  reinstall (which in turn required regenerating the Prisma Client, since
+  that's a manual `apps/api` step in this repo, not a package-install
+  hook). Worth excluding the project folder from real-time antivirus
+  scanning if this recurs.
+
+### Epic 13.1 — ZA Identity System Rollout (2026-09-12)
+
+A visual-only follow-up to Epic 13, implementing a client-supplied,
+production-ready brand identity book (exact colors with WCAG contrast
+tables, a real constructed logo, precise motion specs) on top of Epic 13's
+groundwork. See [ADR 0029](docs/v2/adr/0029-za-identity-system-rollout.md)
+for the full design record — it supersedes ADR 0028's specific palette/logo/
+font choices while keeping its architecture (storefront-only `brand-*`
+tokens, `packages/ui`/`apps/admin`/backend untouched) unchanged.
+
+- **Color palette replaced wholesale**: Epic 13's `brand-blush/cream/butter/
+  sky/plum/glow` scale is retired and replaced with the identity book's exact
+  named colors (Cream, Paper, Ink, Plum, Berry, Rose, Petal, Blush, Dusty,
+  Mauve, Lavender, Gold, Success, Error — see ADR 0029 §2 for the full
+  hex/role table). Every one of the ~22 storefront files using the old
+  palette was migrated; verified via grep that no retired class name
+  remains anywhere in `apps/storefront/src`.
+- **Accessibility fix, not just a reskin**: the identity book's own contrast
+  table flags Rose as failing AA for white text — Epic 13 had used a
+  Rose-family shade for the Newsletter and Contact-form submit buttons; both
+  are corrected to Plum/Berry, the book's actual specified button colors.
+- **A real logo**: every plain "ZA Store" text logo (header, footer, hero)
+  is replaced with a new `Logo` component built from real Fraunces type
+  (not a hand-drawn mark) — italic Rose "Z" + upright Plum "A", with the
+  book's bow/ribbon and stethoscope-to-heart marks, in `primary`/`wordmark`/
+  `compact` variants and light/dark/on-rose tones. Placed as the homepage
+  hero's visual anchor (replacing a generic decorative blob) and in the
+  header/footer nav.
+- **Typography**: Inter replaced with Nunito Sans as the body/UI font (the
+  book explicitly rejects Inter as "the default for every SaaS product").
+  Found and fixed a real production-build failure this caused (`next/font`
+  has no fallback-metric entry for Nunito Sans in this Next.js version) via
+  `adjustFontFallback: false` — confirmed via a full `next build`, not just
+  type-check, specifically because this class of failure only surfaces
+  there.
+- **Tone discipline**: every component's decorative "tone" enum (an
+  arbitrary 4-hue invention from Epic 13) is replaced with the book's own
+  rose/plum (freely repeatable) + gold/lavender (≤10%, at most one per
+  composition, never both together) system; every repeating array on the
+  homepage/PDP was hand-curated against this rule.
+- **Motion**: every named pattern (ambient float, scroll fade-up, carousel
+  slide, wishlist-tap pop, one-time hero reveal) now uses the book's exact
+  durations/curves/distances in place of Epic 13's approximations — see
+  ADR 0029 §6 for the before/after table.
+- **Disclosed, not implemented this pass**: full Arabic/RTL localization
+  (the book is itself written Arabic-first) — would require a real i18n
+  library, an RTL audit of every page, and a database schema change for
+  translated product/CMS content, a substantially larger scope than a
+  visual rollout, left as an explicit future epic. Packaging and
+  social-media templates (book §12/§13) are print/marketing collateral, not
+  implemented in code; the brand pattern (§14) is implemented low-density
+  only, as a section-background utility.
+- Full quality gates re-run after the rollout: lint/type-check/test/build
+  clean across all 9 packages (storefront 45/45 tests, admin 15/15,
+  confirming zero admin impact), including a real production build.
+
 ### Epic 13 — Brand Experience & Theme Transformation (2026-08-05)
 
 A complete visual-only transformation of the storefront into a premium

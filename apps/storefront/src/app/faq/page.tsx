@@ -16,7 +16,9 @@ export async function generateMetadata(): Promise<Metadata> {
     const page = await queryClient.fetchQuery(cmsPageQueryOptions(SLUG));
     return buildMetadata({
       title: page.metaTitle ?? page.title,
-      description: page.metaDescription ?? 'Answers to common questions about shipping, returns, payment, and sizing.',
+      description:
+        page.metaDescription ??
+        'Answers to common questions about shipping, returns, payment, and sizing.',
       path: '/faq',
       image: page.ogImageUrl ?? undefined,
     });
@@ -33,7 +35,7 @@ export default async function FaqPage() {
     const faqs = page.faqItems ?? [];
 
     return (
-      <div className="bg-brand-cream-50">
+      <div className="bg-brand-cream">
         {faqs.length > 0 && (
           <JsonLd
             data={{
@@ -47,9 +49,16 @@ export default async function FaqPage() {
             }}
           />
         )}
-        <EditorialHeader eyebrow="Questions?" description="Answers about shipping, sizing, returns, and everything in between." />
+        <EditorialHeader
+          eyebrow="Questions?"
+          description="Answers about shipping, sizing, returns, and everything in between."
+        />
         <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-          <Heading level={2} as="h1" className="mb-6 text-brand-ink dark:text-brand-ink">
+          <Heading
+            level={2}
+            as="h1"
+            className="text-brand-ink dark:text-brand-ink mb-6"
+          >
             {page.title}
           </Heading>
           <Accordion
@@ -58,9 +67,9 @@ export default async function FaqPage() {
               title: faq.question,
               content: <p>{faq.answer}</p>,
             }))}
-            className="divide-brand-blush-100 dark:divide-brand-blush-100"
-            buttonClassName="text-brand-ink hover:text-brand-blush-600 dark:text-brand-ink dark:hover:text-brand-blush-600"
-            panelClassName="text-brand-ink-muted dark:text-brand-ink-muted"
+            className="divide-brand-petal-100 dark:divide-brand-petal-100"
+            buttonClassName="text-brand-ink hover:text-brand-plum dark:text-brand-ink dark:hover:text-brand-plum"
+            panelClassName="text-brand-mauve dark:text-brand-mauve"
           />
         </div>
       </div>

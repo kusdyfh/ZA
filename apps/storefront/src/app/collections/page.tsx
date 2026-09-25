@@ -1,5 +1,9 @@
 import type { Metadata } from 'next';
-import { dehydrate, HydrationBoundary, QueryClient } from '@tanstack/react-query';
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from '@tanstack/react-query';
 import { Heading } from '@za/ui';
 import { collectionsQueryOptions } from '@/features/collections/api';
 import { buildMetadata } from '@/lib/seo';
@@ -19,11 +23,17 @@ export default async function CollectionsPage() {
 
   return (
     <HydrationBoundary state={dehydrate(queryClient)}>
-      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <Heading level={2} as="h1" className="mb-6">
-          Collections
-        </Heading>
-        <CollectionsContent />
+      <div className="bg-brand-cream dark:bg-transparent">
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+          <Heading
+            level={2}
+            as="h1"
+            className="text-brand-ink mb-6 dark:text-neutral-50"
+          >
+            Collections
+          </Heading>
+          <CollectionsContent />
+        </div>
       </div>
     </HydrationBoundary>
   );

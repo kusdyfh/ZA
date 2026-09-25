@@ -18,11 +18,20 @@ export function CollectionsContent() {
   }
 
   if (isError) {
-    return <p className="text-sm text-danger-500">Could not load collections.</p>;
+    return (
+      <p className="text-danger-500 text-sm">Could not load collections.</p>
+    );
   }
 
   if (!collections || collections.length === 0) {
-    return <EmptyState title="No collections live right now" description="Check back soon for new curated collections." />;
+    return (
+      <EmptyState
+        title="No collections live right now"
+        description="Check back soon for new curated collections."
+        className="rounded-brand-lg border-brand-petal-100 bg-brand-blush/40 dark:border-neutral-700 dark:bg-transparent"
+        iconClassName="text-brand-dusty dark:text-neutral-500"
+      />
+    );
   }
 
   return (
@@ -31,11 +40,15 @@ export function CollectionsContent() {
         <Link
           key={collection.id}
           href={`/collections/${collection.slug}`}
-          className="rounded-lg border border-neutral-200 p-6 transition-shadow hover:shadow-md dark:border-neutral-800"
+          className="rounded-brand-md border-brand-petal-100 bg-brand-paper shadow-brand-tight hover:shadow-brand-soft border p-6 transition-all duration-200 hover:-translate-y-0.5 motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-neutral-800 dark:bg-transparent dark:shadow-none"
         >
-          <h2 className="font-display text-xl font-semibold text-neutral-900 dark:text-neutral-50">{collection.name}</h2>
+          <h2 className="font-display text-brand-ink text-xl font-semibold dark:text-neutral-50">
+            {collection.name}
+          </h2>
           {collection.description && (
-            <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">{collection.description}</p>
+            <p className="text-brand-mauve mt-2 text-sm dark:text-neutral-400">
+              {collection.description}
+            </p>
           )}
         </Link>
       ))}

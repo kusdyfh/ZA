@@ -34,9 +34,12 @@
     "typescript": "^5.5.4"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": [
-      "eslint --fix"
-    ],
+    "apps/admin/**/*.{ts,tsx,js,jsx}": "eslint --fix --config apps/admin/eslint.config.js",
+    "apps/api/**/*.{ts,tsx,js,jsx}": "eslint --fix --config apps/api/eslint.config.js",
+    "apps/storefront/**/*.{ts,tsx,js,jsx}": "eslint --fix --config apps/storefront/eslint.config.js",
+    "packages/shared/**/*.{ts,tsx,js,jsx}": "eslint --fix --config packages/shared/eslint.config.js",
+    "packages/types/**/*.{ts,tsx,js,jsx}": "eslint --fix --config packages/types/eslint.config.js",
+    "packages/ui/**/*.{ts,tsx,js,jsx}": "eslint --fix --config packages/ui/eslint.config.js",
     "*.{ts,tsx,js,jsx,md,json,yml,yaml}": [
       "prettier --write"
     ]

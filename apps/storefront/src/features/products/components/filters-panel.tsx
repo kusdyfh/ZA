@@ -13,7 +13,11 @@ export interface FiltersPanelProps {
   categoryOptions?: { value: string; label: string }[];
 }
 
-export function FiltersPanel({ filters, hideCategoryFilter, categoryOptions }: FiltersPanelProps) {
+export function FiltersPanel({
+  filters,
+  hideCategoryFilter,
+  categoryOptions,
+}: FiltersPanelProps) {
   const { data: brands } = useBrandsQuery({ limit: 100 });
   const { data: colors } = useColorsQuery({ limit: 100 });
   const { data: sizes } = useSizesQuery({ limit: 100 });
@@ -22,40 +26,57 @@ export function FiltersPanel({ filters, hideCategoryFilter, categoryOptions }: F
     <div className="flex flex-col gap-6">
       {!hideCategoryFilter && categoryOptions && categoryOptions.length > 0 && (
         <Select
+          className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose"
           label="Category"
           placeholder="All categories"
           value={filters.categoryId ?? ''}
-          onChange={(event) => filters.setParams({ categoryId: event.target.value })}
+          onChange={(event) =>
+            filters.setParams({ categoryId: event.target.value })
+          }
           options={categoryOptions}
         />
       )}
 
       <Select
+        className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose"
         label="Brand"
         placeholder="All brands"
         value={filters.brandId ?? ''}
         onChange={(event) => filters.setParams({ brandId: event.target.value })}
-        options={(brands?.data ?? []).map((brand) => ({ value: brand.id, label: brand.name }))}
+        options={(brands?.data ?? []).map((brand) => ({
+          value: brand.id,
+          label: brand.name,
+        }))}
       />
 
       <Select
+        className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose"
         label="Color"
         placeholder="Any color"
         value={filters.colorId ?? ''}
         onChange={(event) => filters.setParams({ colorId: event.target.value })}
-        options={(colors?.data ?? []).map((color) => ({ value: color.id, label: color.name }))}
+        options={(colors?.data ?? []).map((color) => ({
+          value: color.id,
+          label: color.name,
+        }))}
       />
 
       <Select
+        className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose"
         label="Size"
         placeholder="Any size"
         value={filters.sizeId ?? ''}
         onChange={(event) => filters.setParams({ sizeId: event.target.value })}
-        options={(sizes?.data ?? []).map((size) => ({ value: size.id, label: size.label }))}
+        options={(sizes?.data ?? []).map((size) => ({
+          value: size.id,
+          label: size.label,
+        }))}
       />
 
       <div>
-        <p className="mb-1.5 text-sm font-medium text-neutral-800 dark:text-neutral-200">Price</p>
+        <p className="text-brand-ink mb-1.5 text-sm font-medium dark:text-neutral-200">
+          Price
+        </p>
         <div className="flex items-center gap-2">
           <Input
             type="number"
@@ -63,16 +84,22 @@ export function FiltersPanel({ filters, hideCategoryFilter, categoryOptions }: F
             aria-label="Minimum price"
             placeholder="Min"
             defaultValue={filters.priceMin ?? ''}
-            onBlur={(event) => filters.setParams({ priceMin: event.target.value })}
+            onBlur={(event) =>
+              filters.setParams({ priceMin: event.target.value })
+            }
+            className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose"
           />
-          <span className="text-neutral-400">–</span>
+          <span className="text-brand-dusty">–</span>
           <Input
             type="number"
             min={0}
             aria-label="Maximum price"
             placeholder="Max"
             defaultValue={filters.priceMax ?? ''}
-            onBlur={(event) => filters.setParams({ priceMax: event.target.value })}
+            onBlur={(event) =>
+              filters.setParams({ priceMax: event.target.value })
+            }
+            className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose"
           />
         </div>
       </div>
@@ -81,17 +108,32 @@ export function FiltersPanel({ filters, hideCategoryFilter, categoryOptions }: F
         <Checkbox
           label="Featured"
           checked={filters.isFeatured ?? false}
-          onChange={(event) => filters.setParams({ isFeatured: event.target.checked ? 'true' : undefined })}
+          onChange={(event) =>
+            filters.setParams({
+              isFeatured: event.target.checked ? 'true' : undefined,
+            })
+          }
+          className="accent-brand-plum"
         />
         <Checkbox
           label="Best sellers"
           checked={filters.isBestSeller ?? false}
-          onChange={(event) => filters.setParams({ isBestSeller: event.target.checked ? 'true' : undefined })}
+          onChange={(event) =>
+            filters.setParams({
+              isBestSeller: event.target.checked ? 'true' : undefined,
+            })
+          }
+          className="accent-brand-plum"
         />
         <Checkbox
           label="New arrivals"
           checked={filters.isNewArrival ?? false}
-          onChange={(event) => filters.setParams({ isNewArrival: event.target.checked ? 'true' : undefined })}
+          onChange={(event) =>
+            filters.setParams({
+              isNewArrival: event.target.checked ? 'true' : undefined,
+            })
+          }
+          className="accent-brand-plum"
         />
       </div>
     </div>

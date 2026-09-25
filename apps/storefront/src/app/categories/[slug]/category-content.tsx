@@ -27,48 +27,79 @@ export function CategoryContent({ category }: { category: Category }) {
   });
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <Breadcrumbs
-        linkComponent={BreadcrumbLink}
-        items={[{ label: 'Categories', href: '/categories' }, { label: category.name }]}
-        className="mb-4"
-      />
-      <div className="mb-6 flex items-center justify-between gap-4">
-        <h1 className="font-display text-3xl font-semibold text-neutral-900 dark:text-neutral-50">{category.name}</h1>
-        <Button variant="outline" leadingIcon={<SlidersHorizontal className="h-4 w-4" />} onClick={() => setIsFilterDrawerOpen(true)} className="lg:hidden">
-          Filters
-        </Button>
-      </div>
-      {category.description && <p className="mb-6 max-w-2xl text-neutral-600 dark:text-neutral-400">{category.description}</p>}
-
-      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
-        <aside className="hidden lg:block">
-          <FiltersPanel filters={filters} hideCategoryFilter />
-        </aside>
-        <div>
-          {isError ? (
-            <p className="text-sm text-danger-500">Something went wrong loading products. Please try again.</p>
-          ) : (
-            <>
-              <ProductGrid products={data?.data ?? []} isLoading={isLoading} emptyDescription="No products in this category yet." />
-              {data && data.meta.totalPages > 1 && (
-                <div className="mt-6">
-                  <Pagination
-                    page={filters.page}
-                    totalPages={data.meta.totalPages}
-                    limit={20}
-                    onPageChange={(page) => filters.setParams({ page: String(page) }, false)}
-                  />
-                </div>
-              )}
-            </>
-          )}
+    <div className="bg-brand-cream dark:bg-transparent">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <Breadcrumbs
+          linkComponent={BreadcrumbLink}
+          items={[
+            { label: 'Categories', href: '/categories' },
+            { label: category.name },
+          ]}
+          className="mb-4"
+        />
+        <div className="mb-6 flex items-center justify-between gap-4">
+          <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
+            {category.name}
+          </h1>
+          <Button
+            variant="outline"
+            leadingIcon={<SlidersHorizontal className="h-4 w-4" />}
+            onClick={() => setIsFilterDrawerOpen(true)}
+            className="rounded-brand-pill border-brand-plum text-brand-plum hover:bg-brand-blush lg:hidden"
+          >
+            Filters
+          </Button>
         </div>
-      </div>
+        {category.description && (
+          <p className="text-brand-mauve mb-6 max-w-2xl dark:text-neutral-400">
+            {category.description}
+          </p>
+        )}
 
-      <Drawer open={isFilterDrawerOpen} onClose={() => setIsFilterDrawerOpen(false)} title="Filters" side="bottom">
-        <FiltersPanel filters={filters} hideCategoryFilter />
-      </Drawer>
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[240px_1fr]">
+          <aside className="hidden lg:block">
+            <FiltersPanel filters={filters} hideCategoryFilter />
+          </aside>
+          <div>
+            {isError ? (
+              <p className="text-danger-500 text-sm">
+                Something went wrong loading products. Please try again.
+              </p>
+            ) : (
+              <>
+                <ProductGrid
+                  products={data?.data ?? []}
+                  isLoading={isLoading}
+                  emptyDescription="No products in this category yet."
+                />
+                {data && data.meta.totalPages > 1 && (
+                  <div className="mt-6">
+                    <Pagination
+                      page={filters.page}
+                      totalPages={data.meta.totalPages}
+                      limit={20}
+                      onPageChange={(page) =>
+                        filters.setParams({ page: String(page) }, false)
+                      }
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <Drawer
+          open={isFilterDrawerOpen}
+          onClose={() => setIsFilterDrawerOpen(false)}
+          title="Filters"
+          side="bottom"
+          className="bg-brand-cream dark:bg-neutral-900"
+          titleClassName="text-brand-ink dark:text-neutral-50"
+        >
+          <FiltersPanel filters={filters} hideCategoryFilter />
+        </Drawer>
+      </div>
     </div>
   );
 }

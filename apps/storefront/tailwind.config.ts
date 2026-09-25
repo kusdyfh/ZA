@@ -2,11 +2,12 @@ import type { Config } from 'tailwindcss';
 import sharedPreset from '@za/config/tailwind-preset';
 
 /**
- * Epic 13 (ADR 0028) — the storefront's own "brand" token layer, additive
- * alongside the shared `@za/config/tailwind-preset` (never inside it). Every
- * token here is namespaced `brand-*` so it can never collide with, or be
+ * ADR 0029 — the "ZA Identity System" token layer, superseding ADR 0028's
+ * palette/logo/typography specifics while keeping its architecture intact:
+ * additive alongside the shared `@za/config/tailwind-preset` (never inside
+ * it), every token namespaced `brand-*` so it can never collide with, or be
  * mistaken for, the shared `pink`/`neutral`/etc. scale that `packages/ui`
- * and `apps/admin` still render with, completely unchanged. See ADR 0028 §1.
+ * and `apps/admin` still render with, completely unchanged. See ADR 0029 §1.
  */
 const config: Config = {
   presets: [sharedPreset],
@@ -18,49 +19,31 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'brand-blush': {
-          50: '#FFF6FA',
-          100: '#FEEBF3',
-          200: '#FBD3E6',
-          300: '#F7B0D2',
-          400: '#F084B9',
-          500: '#E85FA0',
-          600: '#D13F84',
-          700: '#AC2E68',
-          800: '#872550',
-          900: '#5E1B38',
-        },
-        'brand-cream': {
-          50: '#FFFEFB',
-          100: '#FFFBF3',
-          200: '#FDF3E2',
-          300: '#FBEACC',
-          400: '#F5DDB0',
-          500: '#F5E6D3',
-          600: '#E8D0A8',
-        },
-        'brand-butter': {
-          100: '#FFF9E8',
-          300: '#FFEFC2',
-          500: '#FFD966',
-          700: '#E0A82E',
-        },
-        'brand-sky': {
-          100: '#EAF4FA',
-          300: '#C3E1F0',
-          500: '#8FC4E3',
-          700: '#4E93BD',
-        },
-        'brand-plum': {
-          100: '#F1E9F7',
-          300: '#D6BEEA',
-          500: '#A87BC9',
-          700: '#7A4F9C',
-        },
-        'brand-glow': '#FFE9A8',
-        'brand-glow-strong': '#FFC94D',
-        'brand-ink': '#3A2A2E',
-        'brand-ink-muted': '#7A6368',
+        // ADR 0029 §2 — exact hex values from the identity system.
+        'brand-cream': '#FFF4E6',
+        'brand-paper': '#FFFCFD',
+        'brand-ink': '#241F23',
+        'brand-plum': '#7B4D6D',
+        'brand-berry': '#704060',
+        'brand-rose': '#E58FA7',
+        'brand-petal': { 100: '#F9D6E1', 300: '#F6B7C8' },
+        'brand-blush': '#FBEAF0',
+        'brand-dusty': '#D88AAD',
+        'brand-mauve': '#C09098',
+        'brand-lavender': '#CDB8F0',
+        'brand-gold': '#F8D98A',
+        'brand-success': '#8FA888',
+        'brand-success-solid': '#5F7A57',
+        'brand-success-text': '#4F6E48',
+        'brand-error': '#B5495B',
+        'brand-error-tint': '#F5DADD',
+        // Pale tints derived from the primary/rare-accent hues above, needed
+        // for card/badge surfaces (the identity book only swatches the
+        // saturated step of each — these are this implementation's own
+        // interpolations, kept strong enough to read clearly, not washed out).
+        'brand-plum-tint': '#D7CAD3',
+        'brand-gold-tint': '#FBEBC4',
+        'brand-lavender-tint': '#E7DBF8',
       },
       fontFamily: {
         script: ['var(--font-script)', 'cursive'],
@@ -69,36 +52,60 @@ const config: Config = {
         'brand-sm': '12px',
         'brand-md': '20px',
         'brand-lg': '28px',
-        'brand-xl': '40px',
+        'brand-xl': '36px',
         'brand-pill': '999px',
         'brand-blob': '63% 37% 54% 46% / 43% 45% 55% 57%',
       },
       boxShadow: {
-        'brand-soft': '0 8px 24px rgba(232, 95, 160, 0.12)',
-        'brand-card': '0 12px 32px rgba(58, 42, 46, 0.08)',
-        'brand-glow': '0 0 40px rgba(255, 201, 77, 0.35)',
+        // ADR 0029 §9 — one warm-plum shadow recipe everywhere, never generic gray.
+        'brand-soft': '0 20px 60px rgba(123, 77, 109, 0.14)',
+        'brand-tight': '0 8px 22px rgba(123, 77, 109, 0.12)',
+        'brand-glow': '0 0 40px rgba(248, 217, 138, 0.4)',
       },
       backgroundImage: {
-        'brand-gradient-hero': 'linear-gradient(135deg, #E85FA0 0%, #F084B9 45%, #FFD966 100%)',
-        'brand-gradient-section': 'linear-gradient(180deg, #FFFBF3 0%, #FFF6FA 100%)',
-        'brand-gradient-newsletter': 'linear-gradient(120deg, #E85FA0 0%, #A87BC9 100%)',
-        'brand-gradient-spotlight': 'radial-gradient(circle, rgba(255,233,168,0.9) 0%, rgba(255,233,168,0) 70%)',
+        'brand-gradient-hero':
+          'radial-gradient(circle at 14% 20%, rgba(229,143,167,.30), transparent 40%), radial-gradient(circle at 88% 8%, rgba(205,184,240,.28), transparent 38%), linear-gradient(160deg, #FFF8FA 0%, #F9D6E1 46%, #FFF4E6 100%)',
+        'brand-gradient-section':
+          'linear-gradient(180deg, #FFFCFD 0%, #FBEAF0 100%)',
+        'brand-gradient-newsletter':
+          'linear-gradient(120deg, #7B4D6D 0%, #704060 100%)',
+        'brand-gradient-spotlight':
+          'radial-gradient(circle, rgba(248,217,138,0.9) 0%, rgba(248,217,138,0) 70%)',
+        'brand-gradient-rose-dusty':
+          'linear-gradient(150deg, #E58FA7, #D88AAD)',
+        'brand-gradient-plum-berry':
+          'linear-gradient(150deg, #7B4D6D, #704060)',
+        'brand-gradient-lavender-dusty':
+          'linear-gradient(150deg, #CDB8F0, #D88AAD)',
       },
       spacing: {
         'section-y': 'clamp(4rem, 8vw, 9rem)',
       },
       keyframes: {
+        // ADR 0029 §10 — exact motion-language specs (durations/curves/distances).
         'brand-float': {
-          '0%, 100%': { transform: 'translateY(0) rotate(0deg)' },
-          '50%': { transform: 'translateY(-10px) rotate(3deg)' },
-        },
-        'brand-float-slow': {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-6px)' },
+          '0%, 100%': { transform: 'translateY(10px)' },
+          '50%': { transform: 'translateY(-10px)' },
         },
         'brand-fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(16px)' },
+          '0%': { opacity: '0', transform: 'translateY(12px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'brand-slide-x': {
+          '0%, 100%': { transform: 'translateX(-26px)' },
+          '50%': { transform: 'translateX(26px)' },
+        },
+        'brand-pop': {
+          '0%, 80%, 100%': { transform: 'scale(1)' },
+          '90%': { transform: 'scale(1.18)' },
+        },
+        'brand-ribbon-draw': {
+          '0%': { strokeDashoffset: '240' },
+          '100%': { strokeDashoffset: '0' },
+        },
+        'brand-hero-reveal': {
+          '0%': { opacity: '0', transform: 'scale(.92)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         },
         'brand-twinkle': {
           '0%, 100%': { opacity: '0.4', transform: 'scale(0.9)' },
@@ -106,10 +113,20 @@ const config: Config = {
         },
       },
       animation: {
-        'brand-float': 'brand-float 6s ease-in-out infinite',
-        'brand-float-slow': 'brand-float-slow 8s ease-in-out infinite',
-        'brand-fade-up': 'brand-fade-up 0.6s ease-out both',
+        'brand-float': 'brand-float 2.6s ease-in-out infinite',
+        'brand-float-slow': 'brand-float 5s ease-in-out infinite',
+        'brand-fade-up': 'brand-fade-up 400ms cubic-bezier(.22,1,.36,1) both',
+        'brand-slide-x':
+          'brand-slide-x 2.1s cubic-bezier(.22,1,.36,1) infinite',
+        'brand-pop': 'brand-pop 1.6s ease-in-out infinite',
+        'brand-pop-once': 'brand-pop 250ms cubic-bezier(.34,1.56,.64,1) 1',
+        'brand-ribbon-draw': 'brand-ribbon-draw 600ms ease both',
+        'brand-hero-reveal':
+          'brand-hero-reveal 600ms cubic-bezier(.22,1,.36,1) both',
         'brand-twinkle': 'brand-twinkle 3s ease-in-out infinite',
+      },
+      transitionTimingFunction: {
+        brand: 'cubic-bezier(.22,1,.36,1)',
       },
     },
   },

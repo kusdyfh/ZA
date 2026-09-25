@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Caveat, Fraunces, Inter } from 'next/font/google';
+import { Caveat, Fraunces, Nunito_Sans } from 'next/font/google';
 import './globals.css';
 import { ThemeInitScript } from '@za/ui';
 import { Providers } from '@/lib/providers';
@@ -13,13 +13,20 @@ const fraunces = Fraunces({
   display: 'swap',
 });
 
-const inter = Inter({
+/** ADR 0029 §3 — Nunito Sans replaces Inter as the storefront body/UI font: a warm humanist sans, explicitly chosen over Inter's "every SaaS product" default. */
+const nunitoSans = Nunito_Sans({
   subsets: ['latin'],
   variable: '--font-sans',
   display: 'swap',
+  // next/font's built-in fallback-metrics table (used to auto-tune a
+  // matching system-font fallback to avoid layout shift) doesn't carry an
+  // entry for this family in the Next.js version this app pins — without
+  // this flag the production build fails outright (`Failed to find font
+  // override values for font 'Nunito Sans'`).
+  adjustFontFallback: false,
 });
 
-/** Epic 13 (ADR 0028 §3) — hand-written accent font for signage-style labels, sticker text, and pull-quotes only. Never body copy. */
+/** ADR 0029 §3 (carried over from ADR 0028 §3) — hand-written accent font for signage-style labels, sticker text, and pull-quotes only. Never body copy. */
 const caveat = Caveat({
   subsets: ['latin'],
   variable: '--font-script',
@@ -44,7 +51,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${fraunces.variable} ${inter.variable} ${caveat.variable}`}
+      className={`${fraunces.variable} ${nunitoSans.variable} ${caveat.variable}`}
       suppressHydrationWarning
     >
       <head>

@@ -16,19 +16,32 @@ export interface EditorialHeaderProps {
  * so it works directly in these CMS-fetching server pages. Fixed light
  * palette, self-contained above each page's untouched CMS-driven content.
  */
-export function EditorialHeader({ eyebrow, description, className }: EditorialHeaderProps) {
+export function EditorialHeader({
+  eyebrow,
+  description,
+  className,
+}: EditorialHeaderProps) {
   return (
-    <div className={cn('relative overflow-hidden bg-brand-gradient-section py-14 text-center', className)}>
+    <div
+      className={cn(
+        'bg-brand-gradient-section relative overflow-hidden py-14 text-center',
+        className,
+      )}
+    >
       <FloatingDecoration className="absolute left-[8%] top-6" speed="slow">
-        <Sparkle className="h-5 w-5 text-brand-blush-300" />
+        <Sparkle className="text-brand-petal-300 h-5 w-5" />
       </FloatingDecoration>
       <FloatingDecoration className="absolute right-[10%] top-8" delayMs={500}>
-        <Sparkle className="h-4 w-4 text-brand-butter-500" />
+        <Sparkle className="text-brand-gold h-4 w-4" />
       </FloatingDecoration>
       <ArchPlaque className="mx-auto">{eyebrow}</ArchPlaque>
-      {description && <p className="mx-auto mt-4 max-w-md px-4 text-sm text-brand-ink-muted">{description}</p>}
+      {description && (
+        <p className="text-brand-mauve mx-auto mt-4 max-w-md px-4 text-sm">
+          {description}
+        </p>
+      )}
       <div className="mt-2 flex justify-center">
-        <DoodleUnderline className="text-brand-blush-300" />
+        <DoodleUnderline className="text-brand-petal-300" />
       </div>
     </div>
   );

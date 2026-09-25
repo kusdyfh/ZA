@@ -38,9 +38,15 @@ export function NewsletterSection() {
       description="New arrivals, lifestyle stories, and the occasional sparkle-covered discount."
     >
       {submitted ? (
-        <p className="font-script text-2xl text-white">Thank you! See you soon.</p>
+        <p className="font-script text-2xl text-white">
+          Thank you! See you soon.
+        </p>
       ) : (
-        <form onSubmit={onSubmit} className="flex w-full max-w-sm flex-col gap-3 sm:flex-row" noValidate>
+        <form
+          onSubmit={onSubmit}
+          className="flex w-full max-w-sm flex-col gap-3 sm:flex-row"
+          noValidate
+        >
           <Input
             type="email"
             placeholder="you@example.com"
@@ -53,7 +59,7 @@ export function NewsletterSection() {
           <Button
             type="button"
             onClick={handleSubscribe}
-            className="shrink-0 rounded-brand-pill bg-brand-ink text-white hover:bg-brand-ink/90"
+            className="rounded-brand-pill bg-brand-plum text-brand-paper hover:bg-brand-berry shrink-0"
           >
             Subscribe
           </Button>

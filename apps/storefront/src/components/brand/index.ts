@@ -1,4 +1,6 @@
 export { ArchPlaque } from './arch-plaque';
+export { ArtStoryWall } from './art-story-wall';
+export type { WallFrame, StoryFrame, QuoteFrame } from './art-story-wall';
 export { BrandHero } from './brand-hero';
 export { EditorialHeader } from './editorial-header';
 export { CharacterCard } from './character-card';
@@ -10,9 +12,12 @@ export { IllustratedBackground } from './illustrated-background';
 export { IllustrationBanner } from './illustration-banner';
 export { LifestyleSection } from './lifestyle-section';
 export type { LifestyleMoment } from './lifestyle-section';
+export { Logo } from './logo';
+export type { LogoProps } from './logo';
 export { NewsletterSection } from './newsletter-section';
 export { PortraitBlob } from './portrait-blob';
 export { QuoteSection } from './quote-section';
+export { RotatingArtwork } from './rotating-artwork';
 export { StorySection } from './story-section';
 
 export * from './decorative';

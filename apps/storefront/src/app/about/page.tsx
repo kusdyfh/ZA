@@ -31,7 +31,7 @@ export default async function AboutPage() {
   try {
     const page = await queryClient.fetchQuery(cmsPageQueryOptions(SLUG));
     return (
-      <div className="bg-brand-cream-50">
+      <div className="bg-brand-cream">
         <JsonLd
           data={{
             '@context': 'https://schema.org',
@@ -41,12 +41,22 @@ export default async function AboutPage() {
             url: `${SITE_URL}/about`,
           }}
         />
-        <EditorialHeader eyebrow="Our Story" description="The people and philosophy behind ZA Store." />
+        <EditorialHeader
+          eyebrow="Our Story"
+          description="The people and philosophy behind ZA Store."
+        />
         <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6">
-          <Heading level={2} as="h1" className="mb-6 text-brand-ink dark:text-brand-ink">
+          <Heading
+            level={2}
+            as="h1"
+            className="text-brand-ink dark:text-brand-ink mb-6"
+          >
             {page.title}
           </Heading>
-          <Text size="lg" className="whitespace-pre-wrap text-brand-ink-muted dark:text-brand-ink-muted">
+          <Text
+            size="lg"
+            className="text-brand-mauve dark:text-brand-mauve whitespace-pre-wrap"
+          >
             {page.content}
           </Text>
         </div>

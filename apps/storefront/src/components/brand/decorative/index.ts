@@ -2,6 +2,7 @@ export { Sparkle } from './sparkle';
 export { TwinkleStar } from './twinkle-star';
 export { Cloud } from './cloud';
 export { Flower } from './flower';
+export { Heart } from './heart';
 export { DoodleUnderline } from './doodle-underline';
 export { MedicalDoodle } from './medical-doodle';
 export { Sticker } from './sticker';

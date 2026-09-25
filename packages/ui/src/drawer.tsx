@@ -21,9 +21,22 @@ export interface DrawerProps {
   children?: ReactNode;
   footer?: ReactNode;
   side?: 'end' | 'bottom';
+  /** Override the panel's container classes (merged with the default). */
+  className?: string;
+  /** Override the header title's classes (merged with the default). */
+  titleClassName?: string;
 }
 
-export function Drawer({ open, onClose, title, children, footer, side = 'end' }: DrawerProps) {
+export function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  side = 'end',
+  className,
+  titleClassName,
+}: DrawerProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
@@ -54,7 +67,11 @@ export function Drawer({ open, onClose, title, children, footer, side = 'end' }:
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex">
-      <div className="absolute inset-0 bg-neutral-900/50" aria-hidden="true" onClick={onClose} />
+      <div
+        className="absolute inset-0 bg-neutral-900/50"
+        aria-hidden="true"
+        onClick={onClose}
+      />
       <div
         ref={panelRef}
         role="dialog"
@@ -65,10 +82,17 @@ export function Drawer({ open, onClose, title, children, footer, side = 'end' }:
           'relative z-10 flex flex-col bg-white shadow-lg outline-none dark:bg-neutral-900',
           side === 'end' && 'ms-auto h-full w-full max-w-md',
           side === 'bottom' && 'mt-auto max-h-[85vh] w-full rounded-t-lg',
+          className,
         )}
       >
         <div className="flex items-center justify-between gap-4 border-b border-neutral-200 p-4 dark:border-neutral-800">
-          <h2 id="drawer-title" className="font-display text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+          <h2
+            id="drawer-title"
+            className={cn(
+              'font-display text-lg font-semibold text-neutral-900 dark:text-neutral-50',
+              titleClassName,
+            )}
+          >
             {title}
           </h2>
           <button
@@ -82,7 +106,9 @@ export function Drawer({ open, onClose, title, children, footer, side = 'end' }:
         </div>
         <div className="flex-1 overflow-y-auto p-4">{children}</div>
         {footer && (
-          <div className="border-t border-neutral-200 p-4 dark:border-neutral-800">{footer}</div>
+          <div className="border-t border-neutral-200 p-4 dark:border-neutral-800">
+            {footer}
+          </div>
         )}
       </div>
     </div>,

@@ -33,7 +33,7 @@ export function CharacterCarousel({ characters }: CharacterCarouselProps) {
         type="button"
         aria-label="Scroll characters left"
         onClick={() => scrollBy(-240)}
-        className="absolute -left-4 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 text-brand-ink shadow-brand-soft hover:bg-brand-blush-50 sm:flex"
+        className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush absolute -left-4 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full p-2 sm:flex"
       >
         <ChevronLeft className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -41,7 +41,7 @@ export function CharacterCarousel({ characters }: CharacterCarouselProps) {
         type="button"
         aria-label="Scroll characters right"
         onClick={() => scrollBy(240)}
-        className="absolute -right-4 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full bg-white p-2 text-brand-ink shadow-brand-soft hover:bg-brand-blush-50 sm:flex"
+        className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush absolute -right-4 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full p-2 sm:flex"
       >
         <ChevronRight className="h-5 w-5" aria-hidden="true" />
       </button>

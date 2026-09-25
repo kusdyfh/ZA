@@ -7,25 +7,44 @@ import { BreadcrumbLink } from '@/components/breadcrumb-link';
 import type { Collection } from '@/features/collections/types';
 
 export function CollectionContent({ collection }: { collection: Collection }) {
-  const { data: products, isLoading, isError } = useCollectionProductsQuery(collection.id);
+  const {
+    data: products,
+    isLoading,
+    isError,
+  } = useCollectionProductsQuery(collection.id);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-      <Breadcrumbs
-        linkComponent={BreadcrumbLink}
-        items={[{ label: 'Collections', href: '/collections' }, { label: collection.name }]}
-        className="mb-4"
-      />
-      <h1 className="font-display text-3xl font-semibold text-neutral-900 dark:text-neutral-50">{collection.name}</h1>
-      {collection.description && (
-        <p className="mt-2 max-w-2xl text-neutral-600 dark:text-neutral-400">{collection.description}</p>
-      )}
-      <div className="mt-8">
-        {isError ? (
-          <p className="text-sm text-danger-500">Something went wrong loading products. Please try again.</p>
-        ) : (
-          <ProductGrid products={products ?? []} isLoading={isLoading} emptyDescription="No products in this collection yet." />
+    <div className="bg-brand-cream dark:bg-transparent">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        <Breadcrumbs
+          linkComponent={BreadcrumbLink}
+          items={[
+            { label: 'Collections', href: '/collections' },
+            { label: collection.name },
+          ]}
+          className="mb-4"
+        />
+        <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
+          {collection.name}
+        </h1>
+        {collection.description && (
+          <p className="text-brand-mauve mt-2 max-w-2xl dark:text-neutral-400">
+            {collection.description}
+          </p>
         )}
+        <div className="mt-8">
+          {isError ? (
+            <p className="text-danger-500 text-sm">
+              Something went wrong loading products. Please try again.
+            </p>
+          ) : (
+            <ProductGrid
+              products={products ?? []}
+              isLoading={isLoading}
+              emptyDescription="No products in this collection yet."
+            />
+          )}
+        </div>
       </div>
     </div>
   );

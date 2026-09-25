@@ -6,7 +6,11 @@ import { Heart, ShirtIcon } from 'lucide-react';
 import { Badge } from '@za/ui';
 import { cn, formatCurrency } from '@za/shared';
 import { useCustomerAuth } from '@/lib/auth/auth-context';
-import { useAddWishlistItemMutation, useRemoveWishlistItemMutation, useWishlistQuery } from '@/features/wishlist/api';
+import {
+  useAddWishlistItemMutation,
+  useRemoveWishlistItemMutation,
+  useWishlistQuery,
+} from '@/features/wishlist/api';
 import type { Product } from '../types';
 
 export interface ProductCardProps {
@@ -28,8 +32,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const addMutation = useAddWishlistItemMutation();
   const removeMutation = useRemoveWishlistItemMutation();
 
-  const isWishlisted = wishlist?.some((entry) => entry.productId === product.id) ?? false;
-  const hasDiscount = product.discountPrice !== null && Number(product.discountPrice) < Number(product.price);
+  const isWishlisted =
+    wishlist?.some((entry) => entry.productId === product.id) ?? false;
+  const hasDiscount =
+    product.discountPrice !== null &&
+    Number(product.discountPrice) < Number(product.price);
 
   function toggleWishlist(event: React.MouseEvent) {
     event.preventDefault();
@@ -45,8 +52,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
   }
 
   return (
-    <Link href={`/products/${product.slug}`} className={cn('group block', className)}>
-      <div className="relative aspect-square overflow-hidden rounded-lg bg-neutral-100 dark:bg-neutral-800">
+    <Link
+      href={`/products/${product.slug}`}
+      className={cn('group block', className)}
+    >
+      <div className="rounded-brand-md bg-brand-blush relative aspect-square overflow-hidden dark:bg-neutral-800">
         {product.ogImageUrl ? (
           <Image
             src={product.ogImageUrl}
@@ -56,7 +66,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             className="object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-neutral-300 dark:text-neutral-600">
+          <div className="text-brand-dusty flex h-full items-center justify-center dark:text-neutral-600">
             <ShirtIcon className="h-10 w-10" aria-hidden="true" />
           </div>
         )}
@@ -68,28 +78,46 @@ export function ProductCard({ product, className }: ProductCardProps) {
         <button
           type="button"
           onClick={toggleWishlist}
-          aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          aria-label={
+            isWishlisted
+              ? `Remove ${product.name} from wishlist`
+              : `Add ${product.name} to wishlist`
+          }
           aria-pressed={isWishlisted}
-          className="absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-neutral-600 shadow-sm hover:text-pink-600 dark:bg-neutral-900/90 dark:text-neutral-300"
+          className="bg-brand-paper/90 text-brand-mauve shadow-brand-tight hover:text-brand-plum absolute end-2 top-2 flex h-8 w-8 items-center justify-center rounded-full dark:bg-neutral-900/90 dark:text-neutral-300"
         >
-          <Heart className={cn('h-4 w-4', isWishlisted && 'fill-pink-500 text-pink-500')} aria-hidden="true" />
+          <Heart
+            className={cn(
+              'h-4 w-4',
+              isWishlisted && 'fill-brand-rose text-brand-rose',
+            )}
+            aria-hidden="true"
+          />
         </button>
       </div>
       <div className="mt-3">
-        <p className="text-sm font-medium text-neutral-900 dark:text-neutral-100">{product.name}</p>
+        <p className="text-brand-ink text-sm font-medium dark:text-neutral-100">
+          {product.name}
+        </p>
         <div className="mt-1 flex items-center gap-2">
           {hasDiscount ? (
             <>
-              <span className="text-sm font-semibold text-danger-500">
-                {formatCurrency(Number(product.discountPrice), { currency: product.currency })}
+              <span className="text-danger-500 text-sm font-semibold">
+                {formatCurrency(Number(product.discountPrice), {
+                  currency: product.currency,
+                })}
               </span>
               <span className="text-xs text-neutral-400 line-through dark:text-neutral-500">
-                {formatCurrency(Number(product.price), { currency: product.currency })}
+                {formatCurrency(Number(product.price), {
+                  currency: product.currency,
+                })}
               </span>
             </>
           ) : (
-            <span className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-              {formatCurrency(Number(product.price), { currency: product.currency })}
+            <span className="text-brand-ink text-sm font-semibold dark:text-neutral-100">
+              {formatCurrency(Number(product.price), {
+                currency: product.currency,
+              })}
             </span>
           )}
         </div>

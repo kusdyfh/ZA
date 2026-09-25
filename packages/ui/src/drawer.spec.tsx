@@ -31,4 +31,24 @@ describe('Drawer', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it('merges className/titleClassName with the defaults instead of replacing them', () => {
+    render(
+      <Drawer
+        open
+        onClose={jest.fn()}
+        title="Your cart"
+        className="bg-brand-cream"
+        titleClassName="text-brand-ink"
+      />,
+    );
+    expect(screen.getByRole('dialog')).toHaveClass(
+      'bg-brand-cream',
+      'dark:bg-neutral-900',
+    );
+    expect(screen.getByText('Your cart')).toHaveClass(
+      'text-brand-ink',
+      'dark:text-neutral-50',
+    );
+  });
 });

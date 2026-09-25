@@ -31,7 +31,9 @@ export function ContactForm() {
 
   const onSubmit = handleSubmit((values) => {
     const subject = encodeURIComponent(`Message from ${values.name}`);
-    const body = encodeURIComponent(`${values.message}\n\n— ${values.name} (${values.email})`);
+    const body = encodeURIComponent(
+      `${values.message}\n\n— ${values.name} (${values.email})`,
+    );
     window.location.href = `mailto:${SUPPORT_EMAIL}?subject=${subject}&body=${body}`;
   });
 
@@ -57,7 +59,10 @@ export function ContactForm() {
         labelClassName="text-brand-ink dark:text-brand-ink"
         {...register('message')}
       />
-      <Button type="submit" className="self-end rounded-brand-pill bg-brand-blush-600 hover:bg-brand-blush-700">
+      <Button
+        type="submit"
+        className="rounded-brand-pill bg-brand-plum text-brand-paper hover:bg-brand-berry self-end"
+      >
         Send message
       </Button>
     </form>

@@ -13,7 +13,7 @@ export interface DressShowcaseSlide {
   id: string;
   label: string;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
-  tone?: 'blush' | 'butter' | 'sky' | 'plum';
+  tone?: 'rose' | 'plum' | 'gold' | 'lavender';
   products: Product[];
 }
 
@@ -48,7 +48,7 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
           type="button"
           aria-label="Previous look"
           onClick={() => goTo(prevIndex)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-brand-ink shadow-brand-soft hover:bg-brand-blush-50"
+          className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
         >
           <ChevronLeft className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -60,16 +60,29 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
             aria-label={`Preview: ${slides[prevIndex]!.label}`}
             className="hidden shrink-0 opacity-40 saturate-50 transition-opacity duration-300 hover:opacity-60 sm:block"
           >
-            <PortraitBlob icon={slides[prevIndex]!.icon} tone={slides[prevIndex]!.tone} className="h-24 w-24 scale-90" />
+            <PortraitBlob
+              icon={slides[prevIndex]!.icon}
+              tone={slides[prevIndex]!.tone}
+              className="h-24 w-24 scale-90"
+            />
           </button>
         )}
 
-        <div key={active.id} className="flex shrink-0 flex-col items-center gap-3 animate-brand-fade-up">
+        <div
+          key={active.id}
+          className="animate-brand-fade-up flex shrink-0 flex-col items-center gap-3"
+        >
           <div className="relative">
-            <PortraitBlob icon={active.icon} tone={active.tone} className="h-40 w-40 shadow-brand-glow" />
-            <Sparkle className="absolute -right-2 -top-2 h-6 w-6 text-brand-glow-strong animate-brand-twinkle" />
+            <PortraitBlob
+              icon={active.icon}
+              tone={active.tone}
+              className="shadow-brand-glow h-40 w-40"
+            />
+            <Sparkle className="text-brand-gold animate-brand-twinkle absolute -right-2 -top-2 h-6 w-6" />
           </div>
-          <p className="font-script text-2xl text-brand-ink">{active.label}</p>
+          <p className="font-script text-brand-berry text-2xl">
+            {active.label}
+          </p>
         </div>
 
         {slides.length > 1 && (
@@ -79,7 +92,11 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
             aria-label={`Preview: ${slides[nextIndex]!.label}`}
             className="hidden shrink-0 opacity-40 saturate-50 transition-opacity duration-300 hover:opacity-60 sm:block"
           >
-            <PortraitBlob icon={slides[nextIndex]!.icon} tone={slides[nextIndex]!.tone} className="h-24 w-24 scale-90" />
+            <PortraitBlob
+              icon={slides[nextIndex]!.icon}
+              tone={slides[nextIndex]!.tone}
+              className="h-24 w-24 scale-90"
+            />
           </button>
         )}
 
@@ -87,7 +104,7 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
           type="button"
           aria-label="Next look"
           onClick={() => goTo(nextIndex)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-brand-ink shadow-brand-soft hover:bg-brand-blush-50"
+          className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
         >
           <ChevronRight className="h-5 w-5" aria-hidden="true" />
         </button>
@@ -96,7 +113,11 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
       {active.products.length > 0 && (
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
           {active.products.map((product) => (
-            <ProductCard key={product.id} product={product} className={cn('mx-auto w-full max-w-[180px]')} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              className={cn('mx-auto w-full max-w-[180px]')}
+            />
           ))}
         </div>
       )}

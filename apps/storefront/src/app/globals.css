@@ -28,18 +28,23 @@
 }
 
 /**
- * Epic 13 (ADR 0028 §7) — brand motion respects prefers-reduced-motion as a
- * hard requirement, not a nice-to-have: every ambient float/twinkle loop and
+ * ADR 0029 §10 — brand motion respects prefers-reduced-motion as a hard
+ * requirement, not a nice-to-have: every ambient float/twinkle/slide loop and
  * entrance transform is disabled, leaving only near-instant opacity fades.
  */
 @media (prefers-reduced-motion: reduce) {
   .animate-brand-float,
   .animate-brand-float-slow,
-  .animate-brand-twinkle {
+  .animate-brand-twinkle,
+  .animate-brand-slide-x,
+  .animate-brand-pop,
+  .animate-brand-pop-once,
+  .animate-brand-ribbon-draw {
     animation: none !important;
   }
 
-  .animate-brand-fade-up {
+  .animate-brand-fade-up,
+  .animate-brand-hero-reveal {
     animation-duration: 0.01ms !important;
     animation-name: brand-fade-in-only !important;
   }
@@ -55,11 +60,23 @@
 }
 
 /**
- * A soft paper-grain texture (ADR 0028 §9's "painterly, not clinically flat"
+ * A soft paper-grain texture (ADR 0029 §9's "painterly, not clinically flat"
  * atmosphere) — a subtle repeating dot pattern, not an image asset, kept
  * cheap and lazy-free by construction. Opt-in via `.brand-texture-paper`.
  */
 .brand-texture-paper {
-  background-image: radial-gradient(circle, rgba(58, 42, 46, 0.035) 1px, transparent 1px);
+  background-image: radial-gradient(circle, rgba(123, 77, 109, 0.035) 1px, transparent 1px);
   background-size: 14px 14px;
+}
+
+/**
+ * ADR 0029 §14 — the brand pattern tile (monogram + sparkle + heart + ribbon
+ * dot), low density only: for site section backgrounds, never behind body
+ * text or a call-to-action. Mid/full density are print-only (packaging,
+ * tissue paper) and not implemented here.
+ */
+.brand-pattern-low {
+  background-color: theme('colors.brand-cream');
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90'%3E%3Cg fill='%237B4D6D' fill-opacity='0.045'%3E%3Ctext x='8' y='26' font-family='Georgia, serif' font-weight='700' font-size='17'%3EZA%3C/text%3E%3Cpath d='M60 12c-.6 3.6-1.7 6-4.4 7.1 2.7 1.1 3.8 3.5 4.4 7.1.6-3.6 1.7-6 4.4-7.1-2.7-1.1-3.8-3.5-4.4-7.1Z'/%3E%3Cpath d='M20 55s-6.4-3.9-8.8-8c-1.9 3.9-.5 7.5 3.5 9.3-4 1.6-5.4 5.2-3.5 9.3 2.4-4.1 8.8-8 8.8-8Z'/%3E%3Cpath d='M50 60c0-4.4 3.2-7 7.4-7s7.4 2.6 7.4 7-3.2 8-7.4 11c-4.2-3-7.4-6.6-7.4-11Z'/%3E%3Ccircle cx='78' cy='70' r='3.4'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 80px 80px;
 }

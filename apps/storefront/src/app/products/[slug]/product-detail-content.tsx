@@ -1,22 +1,52 @@
 'use client';
 
 import { Coffee, GraduationCap, Moon } from 'lucide-react';
-import { Accordion, Breadcrumbs, ErrorState, Skeleton } from '@za/ui';
+import { ErrorState, Skeleton } from '@za/ui';
 import { formatCurrency } from '@za/shared';
 import { useProductDetailQuery } from '@/features/products/api';
 import { ProductGallery } from '@/features/products/components/product-gallery';
 import { AddToCartForm } from '@/features/products/components/add-to-cart-form';
-import { ProductRail } from '@/features/products/components/product-rail';
-import { ReviewSection } from '@/features/reviews/components/review-section';
-import { BreadcrumbLink } from '@/components/breadcrumb-link';
-import { ArchPlaque, DoodleUnderline, FloatingDecoration, LifestyleSection, Sparkle } from '@/components/brand';
+import {
+  ArchPlaque,
+  DoodleUnderline,
+  FloatingDecoration,
+  LifestyleSection,
+  Sparkle,
+} from '@/components/brand';
 
 const PDP_LIFESTYLE_MOMENTS = [
-  { title: 'Night Shift', caption: 'Soft, breathable, built to last', icon: Moon, tone: 'plum' as const, href: '/shop?isBestSeller=true' },
-  { title: 'Study Session', caption: 'From lecture hall to lab bench', icon: GraduationCap, tone: 'sky' as const, href: '/shop?isNewArrival=true' },
-  { title: 'Coffee Break', caption: 'Five quiet minutes between rounds', icon: Coffee, tone: 'butter' as const, href: '/shop?isFeatured=true' },
+  {
+    title: 'Night Shift',
+    caption: 'Soft, breathable, built to last',
+    icon: Moon,
+    tone: 'plum' as const,
+    href: '/shop?isBestSeller=true',
+  },
+  {
+    title: 'Study Session',
+    caption: 'From lecture hall to lab bench',
+    icon: GraduationCap,
+    tone: 'rose' as const,
+    href: '/shop?isNewArrival=true',
+  },
+  {
+    title: 'Coffee Break',
+    caption: 'Five quiet minutes between rounds',
+    icon: Coffee,
+    tone: 'gold' as const,
+    href: '/shop?isFeatured=true',
+  },
 ];
 
+/**
+ * ADR 0029 §? — simplified per explicit direction to a focused Visual →
+ * Colors/Sizes/Add to Cart → Story/Illustration flow. Breadcrumbs, the
+ * description/specifications accordion, related/cross-sell/up-sell rails,
+ * and the review section are deliberately removed from this page (a real,
+ * disclosed product decision — not a bug); their components and the
+ * underlying API data are untouched and still used elsewhere, so this is
+ * reversible without any backend/business-logic change.
+ */
 export function ProductDetailContent({ slug }: { slug: string }) {
   const { data, isLoading, isError } = useProductDetailQuery(slug);
 
@@ -36,120 +66,99 @@ export function ProductDetailContent({ slug }: { slug: string }) {
   if (isError || !data) {
     return (
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
-        <ErrorState title="Product not found" description="It may have been removed or is no longer available." />
+        <ErrorState
+          title="Product not found"
+          description="It may have been removed or is no longer available."
+        />
       </div>
     );
   }
 
-  const { product, variants, media, specifications, related, crossSell, upSell } = data;
-  const hasDiscount = product.discountPrice !== null && Number(product.discountPrice) < Number(product.price);
+  const { product, variants, media } = data;
+  const hasDiscount =
+    product.discountPrice !== null &&
+    Number(product.discountPrice) < Number(product.price);
 
   return (
     <div>
       {/* ADR 0028 §7 — an illustrated header band, fixed light palette,
           self-contained above the functional (theme-aware) core below.
           Visual-only per the brief: no product data changes here. */}
-      <div className="relative overflow-hidden bg-brand-gradient-section py-10 text-center">
+      <div className="bg-brand-gradient-section relative overflow-hidden py-10 text-center">
         <FloatingDecoration className="absolute left-[10%] top-4" speed="slow">
-          <Sparkle className="h-5 w-5 text-brand-blush-300" />
+          <Sparkle className="text-brand-petal-300 h-5 w-5" />
         </FloatingDecoration>
-        <FloatingDecoration className="absolute right-[12%] top-6" delayMs={500}>
-          <Sparkle className="h-4 w-4 text-brand-butter-500" />
+        <FloatingDecoration
+          className="absolute right-[12%] top-6"
+          delayMs={500}
+        >
+          <Sparkle className="text-brand-gold h-4 w-4" />
         </FloatingDecoration>
         <ArchPlaque className="mx-auto">Made with care</ArchPlaque>
-        <p className="mx-auto mt-4 max-w-md px-4 text-sm text-brand-ink-muted">
-          Every piece is chosen for the way real shifts actually go — soft fabric, thoughtful pockets, room to move.
+        <p className="text-brand-mauve mx-auto mt-4 max-w-md px-4 text-sm">
+          Every piece is chosen for the way real shifts actually go — soft
+          fabric, thoughtful pockets, room to move.
         </p>
         <div className="mt-2 flex justify-center">
-          <DoodleUnderline className="text-brand-blush-300" />
+          <DoodleUnderline className="text-brand-petal-300" />
         </div>
       </div>
 
+      {/* Product Visual + Colors / Sizes / Add to Cart (AddToCartForm bundles
+          the variant picker and submit action together — untouched). */}
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <Breadcrumbs
-          linkComponent={BreadcrumbLink}
-          items={[{ label: 'Shop', href: '/shop' }, { label: product.name }]}
-          className="mb-4"
-        />
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
           <ProductGallery media={media} productName={product.name} />
 
-        <div>
-          <h1 className="font-display text-3xl font-semibold text-neutral-900 dark:text-neutral-50">{product.name}</h1>
-          <div className="mt-2 flex items-center gap-2">
-            {hasDiscount ? (
-              <>
-                <span className="text-xl font-semibold text-danger-500">
-                  {formatCurrency(Number(product.discountPrice), { currency: product.currency })}
+          <div>
+            <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
+              {product.name}
+            </h1>
+            <div className="mt-2 flex items-center gap-2">
+              {hasDiscount ? (
+                <>
+                  <span className="text-danger-500 text-xl font-semibold">
+                    {formatCurrency(Number(product.discountPrice), {
+                      currency: product.currency,
+                    })}
+                  </span>
+                  <span className="text-base text-neutral-400 line-through dark:text-neutral-500">
+                    {formatCurrency(Number(product.price), {
+                      currency: product.currency,
+                    })}
+                  </span>
+                </>
+              ) : (
+                <span className="text-brand-ink text-xl font-semibold dark:text-neutral-100">
+                  {formatCurrency(Number(product.price), {
+                    currency: product.currency,
+                  })}
                 </span>
-                <span className="text-base text-neutral-400 line-through dark:text-neutral-500">
-                  {formatCurrency(Number(product.price), { currency: product.currency })}
-                </span>
-              </>
-            ) : (
-              <span className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                {formatCurrency(Number(product.price), { currency: product.currency })}
-              </span>
-            )}
-          </div>
-
-          {product.shortDescription && (
-            <p className="mt-4 text-neutral-600 dark:text-neutral-400">{product.shortDescription}</p>
-          )}
-
-          <div className="mt-6">
-            <AddToCartForm variants={variants} />
-          </div>
-
-          {(product.description || specifications.length > 0) && (
-            <div className="mt-8">
-              <Accordion
-                allowMultiple
-                defaultOpenKeys={['description']}
-                items={[
-                  ...(product.description
-                    ? [{ key: 'description', title: 'Description', content: <p>{product.description}</p> }]
-                    : []),
-                  ...(specifications.length > 0
-                    ? [
-                        {
-                          key: 'specifications',
-                          title: 'Specifications',
-                          content: (
-                            <dl className="flex flex-col gap-2">
-                              {specifications.map((spec) => (
-                                <div key={spec.id} className="flex justify-between gap-4">
-                                  <dt className="font-medium text-neutral-700 dark:text-neutral-300">{spec.label}</dt>
-                                  <dd className="text-end text-neutral-500 dark:text-neutral-400">{spec.value}</dd>
-                                </div>
-                              ))}
-                            </dl>
-                          ),
-                        },
-                      ]
-                    : []),
-                ]}
-              />
+              )}
             </div>
-          )}
-        </div>
+
+            {product.shortDescription && (
+              <p className="text-brand-mauve mt-4 dark:text-neutral-400">
+                {product.shortDescription}
+              </p>
+            )}
+
+            <div className="mt-6">
+              <AddToCartForm variants={variants} />
+            </div>
+          </div>
         </div>
       </div>
 
-      <ProductRail title="Related products" products={related} />
-      <ProductRail title="Frequently bought together" products={crossSell} />
-      <ProductRail title="You might also like" products={upSell} />
-
-      <div className="mt-16 border-t border-neutral-200 pt-8 dark:border-neutral-800">
-        <ReviewSection productId={product.id} />
-      </div>
-
-      {/* ADR 0028 §7 — "lifestyle recommendation" band from the brief, fixed
-          light palette, self-contained below the functional core above. */}
-      <div className="mt-16 bg-brand-cream-50 py-section-y">
+      {/* Story / Illustration — the product's narrative/lifestyle band. */}
+      <div className="bg-brand-cream py-section-y mt-4">
         <div className="mb-8 text-center">
-          <p className="font-script text-2xl text-brand-blush-600">Fits right into your day</p>
-          <h2 className="font-display text-2xl font-semibold text-brand-ink sm:text-3xl">Made for the lifestyle</h2>
+          <p className="font-script text-brand-berry text-2xl">
+            Fits right into your day
+          </p>
+          <h2 className="font-display text-brand-ink text-2xl font-semibold sm:text-3xl">
+            Story / Illustration
+          </h2>
         </div>
         <LifestyleSection moments={PDP_LIFESTYLE_MOMENTS} />
       </div>

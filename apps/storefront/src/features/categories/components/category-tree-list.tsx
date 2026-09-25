@@ -14,13 +14,16 @@ function CategoryNode({ node }: { node: CategoryTreeNode }) {
     <li>
       <Link
         href={`/categories/${node.category.slug}`}
-        className="flex items-center justify-between rounded-md px-3 py-2 text-sm font-medium text-neutral-800 hover:bg-neutral-100 dark:text-neutral-100 dark:hover:bg-neutral-800"
+        className="rounded-brand-md text-brand-ink hover:bg-brand-blush flex items-center justify-between px-3 py-2 text-sm font-medium dark:text-neutral-100 dark:hover:bg-neutral-800"
       >
         {node.category.name}
-        <ChevronRight className="h-4 w-4 text-neutral-400" aria-hidden="true" />
+        <ChevronRight
+          className="text-brand-dusty h-4 w-4 dark:text-neutral-400"
+          aria-hidden="true"
+        />
       </Link>
       {node.children.length > 0 && (
-        <ul className="ms-4 border-s border-neutral-200 ps-2 dark:border-neutral-800">
+        <ul className="border-brand-petal-100 ms-4 border-s ps-2 dark:border-neutral-800">
           {node.children.map((child) => (
             <CategoryNode key={child.category.id} node={child} />
           ))}
@@ -37,18 +40,29 @@ export function CategoryTreeList() {
     return (
       <div className="flex flex-col gap-2">
         {Array.from({ length: 5 }).map((_, index) => (
-          <Skeleton key={index} className="h-10 w-full" />
+          <Skeleton
+            key={index}
+            className="bg-brand-blush h-10 w-full dark:bg-neutral-800"
+          />
         ))}
       </div>
     );
   }
 
   if (isError) {
-    return <p className="text-sm text-danger-500">Could not load categories.</p>;
+    return (
+      <p className="text-danger-500 text-sm">Could not load categories.</p>
+    );
   }
 
   if (!tree || tree.length === 0) {
-    return <EmptyState title="No categories yet" />;
+    return (
+      <EmptyState
+        title="No categories yet"
+        className="rounded-brand-lg border-brand-petal-100 bg-brand-blush/40 dark:border-neutral-700 dark:bg-transparent"
+        iconClassName="text-brand-dusty dark:text-neutral-500"
+      />
+    );
   }
 
   return (

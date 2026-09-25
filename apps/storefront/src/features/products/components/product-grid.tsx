@@ -22,9 +22,9 @@ export function ProductGrid({
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
         {Array.from({ length: skeletonCount }).map((_, index) => (
           <div key={index}>
-            <Skeleton className="aspect-square w-full rounded-lg" />
-            <Skeleton className="mt-3 h-4 w-3/4" />
-            <Skeleton className="mt-2 h-4 w-1/3" />
+            <Skeleton className="rounded-brand-md bg-brand-blush aspect-square w-full dark:bg-neutral-800" />
+            <Skeleton className="bg-brand-blush mt-3 h-4 w-3/4 dark:bg-neutral-800" />
+            <Skeleton className="bg-brand-blush mt-2 h-4 w-1/3 dark:bg-neutral-800" />
           </div>
         ))}
       </div>
@@ -32,7 +32,14 @@ export function ProductGrid({
   }
 
   if (products.length === 0) {
-    return <EmptyState title={emptyTitle} description={emptyDescription} />;
+    return (
+      <EmptyState
+        title={emptyTitle}
+        description={emptyDescription}
+        className="rounded-brand-lg border-brand-petal-100 bg-brand-blush/40 dark:border-neutral-700 dark:bg-transparent"
+        iconClassName="text-brand-dusty dark:text-neutral-500"
+      />
+    );
   }
 
   return (
