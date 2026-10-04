@@ -1,6 +1,14 @@
 # ZA Store — Project Status
 
-**Last updated**: 2026-09-24, end of Epic 13.4 (Editorial Hero Redesign) —
+**Last updated**: 2026-10-04, end of Epic 14.6 (Netlify Build Fix) —
+the storefront build no longer silently falls back to
+`http://localhost:4000/v1`: production builds require
+`NEXT_PUBLIC_API_URL` (public https, with `/v1`, on Netlify) and
+`NEXT_PUBLIC_SITE_URL`, a preflight verifies the API is reachable
+before `next build`, and CMS pages/sitemap revalidate instead of
+freezing at build time. The API itself still has no deployment config in
+this repo. See CHANGELOG Epic 14.6.
+Prior: end of Epic 13.4 (Editorial Hero Redesign) —
 the homepage's first viewport was rebuilt into an asymmetric editorial
 composition (real `Logo`, `PortraitBlob` character, one live product
 photo, existing decorative primitives), reusing the ZA Identity System's

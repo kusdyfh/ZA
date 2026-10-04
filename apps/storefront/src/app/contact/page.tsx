@@ -9,6 +9,9 @@ import { EditorialHeader } from '@/components/brand';
 import { ContactForm } from './contact-form';
 
 const SLUG = 'contact';
+
+// This page falls back to static copy when the CMS is unreachable; without revalidation a build-time outage would freeze that fallback.
+export const revalidate = 300;
 const FALLBACK_INTRO =
   'Have a question about an order, sizing, or anything else? Send us a message and we’ll get back to you.';
 

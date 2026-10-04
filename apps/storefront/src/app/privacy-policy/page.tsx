@@ -8,6 +8,8 @@ import { ApiError } from '@/lib/api/client';
 
 const SLUG = 'privacy-policy';
 
+export const revalidate = 300;
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const queryClient = new QueryClient();

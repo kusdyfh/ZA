@@ -4,7 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "next build",
+    "build": "node scripts/check-api.mjs && next build",
     "dev": "next dev",
     "start": "next start",
     "lint": "eslint . --max-warnings 0",

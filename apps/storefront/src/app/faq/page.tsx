@@ -10,6 +10,8 @@ import { EditorialHeader } from '@/components/brand';
 
 const SLUG = 'faq';
 
+export const revalidate = 300;
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const queryClient = new QueryClient();

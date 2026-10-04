@@ -8,6 +8,56 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.6 — Netlify Build Fix: No More Silent Localhost Fallback (2026-10-04)
+
+Netlify's build compiled and type-checked, then failed in static
+generation with `TypeError: fetch failed / ECONNREFUSED` on `/about`,
+`/faq`, `/privacy-policy`, `/terms-of-service` and `/sitemap.xml`.
+
+- **Root cause (reproduced locally, same error):** `lib/api/client.ts`
+  read `process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/v1'`,
+  and nothing in the repo supplies that variable to Netlify (`.env.local`
+  is gitignored; there is no `netlify.toml`; no API deployment config
+  exists). Those five routes prerender at build from the live API and
+  rethrow on failure; `/shop`, `/categories`, `/collections` and `/`
+  use `prefetchQuery` (swallows errors) and `/contact` catches, which is
+  why only five failed. Also found: with a foreign server on
+  `localhost:4000`, `/about` would have silently prerendered as a 404.
+- `lib/config.ts` (new) is now the only place API/site URLs are
+  resolved. The localhost defaults apply to dev/test only; a production
+  build without `NEXT_PUBLIC_API_URL` / `NEXT_PUBLIC_SITE_URL` fails at
+  build time naming the variable. On Netlify a localhost or non-https
+  API URL is rejected (browsers would block mixed content). Unit-tested.
+- `scripts/check-api.mjs` runs before `next build`: probes
+  `/catalog/storefront/collections` (DB-backed, same dependency as the
+  sitemap), retries up to 90s for cold-starting APIs, and fails with the
+  URL, the cause and a checklist. No `try/catch` was added to pages, no
+  page was removed, prerendering is unchanged.
+- CMS pages and the sitemap now `revalidate` (300s / 3600s). Previously
+  admin CMS edits could never appear without a redeploy.
+- `turbo.json`: `NETLIFY` passed through (turbo's strict env mode hid
+  it), `scripts/**` added to build inputs. Storefront lint ignores
+  `scripts/**` like `jest.setup.js`.
+- Homepage JSON-LD used its own copy of the localhost fallback; it now
+  uses `SITE_URL`.
+- **Verified** against the real API (Postgres + API running):
+  `turbo run build --filter=@za/storefront`, `type-check` and `lint`
+  pass; 13 suites / 55 tests pass; prerendered `/about` contains real CMS
+  content; manifest shows the new revalidate values. Failure paths
+  checked: no env (fails in ~2s with a clear message), Netlify+localhost,
+  and direct `next build` without the preflight.
+- **Not changed:** the API is not deployed by anything in this repo
+  (Netlify needs a public https API, with its `CORS_ORIGIN` including the
+  storefront origin); CI's `build` and `type-check` jobs still need a
+  reachable API (`type-check` depends on `build`) and will now fail
+  clearly instead of cryptically. `/`, `/shop`, `/categories`,
+  `/collections` still bake `prefetchQuery` results in at build time.
+- Local-only: this Windows machine's `node_modules` had dozens of
+  `name(1)` duplicate links and `packages/ui/src/states.tsx` had been
+  renamed `states-Copy20260929142537.tsx` by something outside git
+  (identical content, restored). Clean reinstall + `prisma generate`
+  fixed it; Netlify is unaffected.
+
 ### Epic 13.4 — Editorial Hero Redesign (2026-09-24)
 
 The homepage's first viewport (`BrandHero`) was rebuilt from a centered,

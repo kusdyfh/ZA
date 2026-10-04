@@ -7,18 +7,30 @@ import type { Product } from '@/features/products/types';
 import type { CmsPage } from '@/features/cms/types';
 
 /** Mirrors `CMS_PAGE_SLUGS` (apps/api/src/modules/cms/domain/cms-page-slugs.ts) — the fixed, known set of CMS routes this epic scopes. */
-const CMS_PAGE_SLUGS = ['about', 'contact', 'faq', 'privacy-policy', 'terms-of-service'] as const;
+const CMS_PAGE_SLUGS = [
+  'about',
+  'contact',
+  'faq',
+  'privacy-policy',
+  'terms-of-service',
+] as const;
 
 const PAGE_LIMIT = 100;
+
+// New products/categories/collections should appear in the sitemap without a redeploy.
+export const revalidate = 3600;
 
 async function fetchAllPages<T>(path: string): Promise<T[]> {
   const items: T[] = [];
   let page = 1;
   let totalPages = 1;
   do {
-    const result = await apiFetchPaginated<T>(`${path}${path.includes('?') ? '&' : '?'}page=${page}&limit=${PAGE_LIMIT}`, {
-      auth: false,
-    });
+    const result = await apiFetchPaginated<T>(
+      `${path}${path.includes('?') ? '&' : '?'}page=${page}&limit=${PAGE_LIMIT}`,
+      {
+        auth: false,
+      },
+    );
     items.push(...result.data);
     totalPages = result.meta.totalPages;
     page += 1;
@@ -41,14 +53,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const cmsEntries = await Promise.all(
-    CMS_PAGE_SLUGS.map(async (slug): Promise<MetadataRoute.Sitemap[number] | null> => {
-      try {
-        const page = await apiFetch<CmsPage>(`/storefront/cms/pages/${slug}`, { auth: false });
-        return { url: `${SITE_URL}/${slug}`, lastModified: new Date(page.updatedAt), priority: 0.6 };
-      } catch {
-        return null;
-      }
-    }),
+    CMS_PAGE_SLUGS.map(
+      async (slug): Promise<MetadataRoute.Sitemap[number] | null> => {
+        try {
+          const page = await apiFetch<CmsPage>(
+            `/storefront/cms/pages/${slug}`,
+            { auth: false },
+          );
+          return {
+            url: `${SITE_URL}/${slug}`,
+            lastModified: new Date(page.updatedAt),
+            priority: 0.6,
+          };
+        } catch {
+          return null;
+        }
+      },
+    ),
   );
 
   const [categories, collections, products] = await Promise.all([
@@ -59,12 +80,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const categoryEntries: MetadataRoute.Sitemap = categories
     .filter((category) => category.isActive)
-    .map((category) => ({ url: `${SITE_URL}/categories/${category.slug}`, priority: 0.6 }));
+    .map((category) => ({
+      url: `${SITE_URL}/categories/${category.slug}`,
+      priority: 0.6,
+    }));
 
-  const collectionEntries: MetadataRoute.Sitemap = collections.map((collection) => ({
-    url: `${SITE_URL}/collections/${collection.slug}`,
-    priority: 0.6,
-  }));
+  const collectionEntries: MetadataRoute.Sitemap = collections.map(
+    (collection) => ({
+      url: `${SITE_URL}/collections/${collection.slug}`,
+      priority: 0.6,
+    }),
+  );
 
   const productEntries: MetadataRoute.Sitemap = products.map((product) => ({
     url: `${SITE_URL}/products/${product.slug}`,
@@ -73,7 +99,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticEntries,
-    ...cmsEntries.filter((entry): entry is MetadataRoute.Sitemap[number] => entry !== null),
+    ...cmsEntries.filter(
+      (entry): entry is MetadataRoute.Sitemap[number] => entry !== null,
+    ),
     ...categoryEntries,
     ...collectionEntries,
     ...productEntries,

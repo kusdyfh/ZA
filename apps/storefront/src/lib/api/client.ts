@@ -1,7 +1,15 @@
-import type { ApiErrorDetail, ApiResponse, ApiSuccessResponse, OffsetPaginationMeta } from '@za/types';
-import { clearStoredAuth, getStoredAuth, setStoredAuth } from '../auth/token-storage';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/v1';
+import type {
+  ApiErrorDetail,
+  ApiResponse,
+  ApiSuccessResponse,
+  OffsetPaginationMeta,
+} from '@za/types';
+import {
+  clearStoredAuth,
+  getStoredAuth,
+  setStoredAuth,
+} from '../auth/token-storage';
+import { API_BASE_URL } from '../config';
 
 export class ApiError extends Error {
   constructor(
@@ -75,7 +83,9 @@ async function performFetch<T>(
     ...rest,
     headers: {
       'Content-Type': 'application/json',
-      ...(auth && accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+      ...(auth && accessToken
+        ? { Authorization: `Bearer ${accessToken}` }
+        : {}),
       ...headers,
     },
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -94,14 +104,29 @@ async function performFetch<T>(
 }
 
 /** Decodes the ADR 0016 envelope and returns the full success body (so callers needing `meta` can read it). */
-async function request<T>(path: string, options: ApiFetchOptions = {}): Promise<ApiSuccessResponse<T>> {
+async function request<T>(
+  path: string,
+  options: ApiFetchOptions = {},
+): Promise<ApiSuccessResponse<T>> {
   const stored = getStoredAuth();
-  let { response, body } = await performFetch<T>(path, options, stored?.accessToken ?? null);
+  let { response, body } = await performFetch<T>(
+    path,
+    options,
+    stored?.accessToken ?? null,
+  );
 
-  if (response.status === 401 && options.auth !== false && stored?.refreshToken) {
+  if (
+    response.status === 401 &&
+    options.auth !== false &&
+    stored?.refreshToken
+  ) {
     const newAccessToken = await refreshAccessToken();
     if (newAccessToken) {
-      ({ response, body } = await performFetch<T>(path, options, newAccessToken));
+      ({ response, body } = await performFetch<T>(
+        path,
+        options,
+        newAccessToken,
+      ));
     }
   }
 
@@ -109,18 +134,30 @@ async function request<T>(path: string, options: ApiFetchOptions = {}): Promise<
     if (response.ok) {
       return { success: true, data: undefined as T };
     }
-    throw new ApiError('NETWORK_ERROR', 'The server returned an unexpected response.', response.status);
+    throw new ApiError(
+      'NETWORK_ERROR',
+      'The server returned an unexpected response.',
+      response.status,
+    );
   }
   if (!body.success) {
     if (response.status === 401 && options.auth !== false) {
       clearStoredAuth();
     }
-    throw new ApiError(body.error.code, body.error.message, response.status, body.error.details);
+    throw new ApiError(
+      body.error.code,
+      body.error.message,
+      response.status,
+      body.error.details,
+    );
   }
   return body;
 }
 
-export async function apiFetch<T>(path: string, options?: ApiFetchOptions): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  options?: ApiFetchOptions,
+): Promise<T> {
   const body = await request<T>(path, options);
   return body.data;
 }
@@ -130,10 +167,15 @@ export async function apiFetchPaginated<T>(
   options?: ApiFetchOptions,
 ): Promise<{ data: T[]; meta: OffsetPaginationMeta }> {
   const body = await request<T[]>(path, options);
-  return { data: body.data, meta: body.meta as unknown as OffsetPaginationMeta };
+  return {
+    data: body.data,
+    meta: body.meta as unknown as OffsetPaginationMeta,
+  };
 }
 
-export function buildQueryString(params: Record<string, string | number | boolean | undefined | null>): string {
+export function buildQueryString(
+  params: Record<string, string | number | boolean | undefined | null>,
+): string {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {

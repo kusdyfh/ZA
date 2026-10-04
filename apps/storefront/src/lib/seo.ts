@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from './config';
+
+export { SITE_URL };
 
 const SITE_NAME = 'ZA Store';
-export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 const DEFAULT_DESCRIPTION =
   'Premium medical scrubs, lab coats, and accessories — soft, modern, and made for long shifts.';
 
@@ -19,7 +21,13 @@ export interface BuildMetadataInput {
  * calls, per docs/11-STOREFRONT-SPEC.md's cross-cutting convention
  * (ADR 0022 §7) — no page hand-rolls its own `<head>` tags.
  */
-export function buildMetadata({ title, description, path, image, noIndex }: BuildMetadataInput): Metadata {
+export function buildMetadata({
+  title,
+  description,
+  path,
+  image,
+  noIndex,
+}: BuildMetadataInput): Metadata {
   const canonicalUrl = `${SITE_URL}${path}`;
   const resolvedDescription = description ?? DEFAULT_DESCRIPTION;
 
@@ -27,7 +35,9 @@ export function buildMetadata({ title, description, path, image, noIndex }: Buil
     title,
     description: resolvedDescription,
     alternates: { canonical: canonicalUrl },
-    robots: noIndex ? { index: false, follow: false } : { index: true, follow: true },
+    robots: noIndex
+      ? { index: false, follow: false }
+      : { index: true, follow: true },
     openGraph: {
       title,
       description: resolvedDescription,

@@ -5,7 +5,16 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "inputs": ["src/**", "public/**", "package.json", "tsconfig.json", "next.config.*", "tailwind.config.*"],
+      "passThroughEnv": ["NETLIFY"],
+      "inputs": [
+        "src/**",
+        "public/**",
+        "scripts/**",
+        "package.json",
+        "tsconfig.json",
+        "next.config.*",
+        "tailwind.config.*"
+      ],
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "dev": {

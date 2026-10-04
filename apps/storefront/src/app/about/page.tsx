@@ -10,6 +10,9 @@ import { EditorialHeader } from '@/components/brand';
 
 const SLUG = 'about';
 
+// Prerendered at build, then regenerated in the background so admin CMS edits go live without a redeploy.
+export const revalidate = 300;
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const queryClient = new QueryClient();

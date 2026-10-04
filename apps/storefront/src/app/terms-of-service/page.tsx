@@ -8,6 +8,8 @@ import { ApiError } from '@/lib/api/client';
 
 const SLUG = 'terms-of-service';
 
+export const revalidate = 300;
+
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const queryClient = new QueryClient();
@@ -19,7 +21,10 @@ export async function generateMetadata(): Promise<Metadata> {
       image: page.ogImageUrl ?? undefined,
     });
   } catch {
-    return buildMetadata({ title: 'Terms of Service', path: '/terms-of-service' });
+    return buildMetadata({
+      title: 'Terms of Service',
+      path: '/terms-of-service',
+    });
   }
 }
 
