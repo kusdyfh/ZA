@@ -11,7 +11,10 @@ export function CollectionsContent() {
     return (
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {Array.from({ length: 4 }).map((_, index) => (
-          <Skeleton key={index} className="h-32 w-full rounded-lg" />
+          <Skeleton
+            key={index}
+            className="bg-brand-blush rounded-brand-md h-32 w-full dark:bg-neutral-800"
+          />
         ))}
       </div>
     );

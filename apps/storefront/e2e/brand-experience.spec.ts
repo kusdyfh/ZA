@@ -18,7 +18,7 @@ test.describe('Brand Experience homepage', () => {
 
     await expect(
       page.getByRole('heading', {
-        name: 'Medical wear, dressed like fashion.',
+        name: 'Find your fit.',
       }),
     ).toBeVisible();
     await expect(page.getByRole('link', { name: 'Shop now' })).toHaveAttribute(
@@ -63,7 +63,7 @@ test.describe('Brand Experience homepage', () => {
     // A real subscribe, not a native form submission that would reload the page.
     await expect(
       page.getByRole('heading', {
-        name: 'Medical wear, dressed like fashion.',
+        name: 'Find your fit.',
       }),
     ).toBeVisible();
   });

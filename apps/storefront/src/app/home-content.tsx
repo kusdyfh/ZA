@@ -230,7 +230,7 @@ export function HomeContent() {
     // real bug caught via live visual verification while building this).
     <div className="bg-brand-cream text-brand-ink">
       <BrandHero
-        title="Medical wear, dressed like fashion."
+        title="Find your fit."
         subtitle="Premium scrubs and lab coats made for long shifts, designed to feel like yours."
         ctaLabel="Shop now"
         ctaHref="/shop"
@@ -256,8 +256,10 @@ export function HomeContent() {
 
       {/* Art / Story Wall — consolidates the Featured Collection story, the
           Our Story narrative, and the Brand Philosophy quote into one
-          gallery-wall composition. */}
-      <section className="py-section-y">
+          gallery-wall composition. A soft pink wash (instead of plain
+          cream) so the "wall" reads as its own page in the world rather
+          than a uniform white ecommerce block. */}
+      <section className="bg-brand-blush py-section-y">
         <div className="mb-10 text-center">
           <p className="font-script text-brand-berry text-2xl">
             Framed for you
@@ -303,8 +305,9 @@ export function HomeContent() {
         />
       </section>
 
-      {/* Doll Dress-Up */}
-      <section className="bg-brand-blush py-section-y">
+      {/* Doll Dress-Up — a pale lavender wash, the sequence's one rare
+          accent tint (ADR 0029 §4: gold/lavender, used sparingly). */}
+      <section className="bg-brand-lavender-tint py-section-y">
         <div className="mb-10 text-center">
           <p className="font-script text-brand-berry text-2xl">Try it on</p>
           <Heading
@@ -335,8 +338,10 @@ export function HomeContent() {
         <LifestyleSection moments={LIFESTYLE_MOMENTS} />
       </section>
 
-      {/* Rotating Artwork — a purely decorative, auto-advancing carousel. */}
-      <section className="py-section-y">
+      {/* Rotating Artwork — a purely decorative, auto-advancing carousel.
+          Pink bookend, echoing the hero, before the page settles back to
+          cream for Instagram/Newsletter. */}
+      <section className="bg-brand-blush py-section-y">
         <div className="mb-8 text-center">
           <p className="font-script text-brand-berry text-2xl">
             A little something extra

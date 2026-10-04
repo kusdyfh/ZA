@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Breadcrumbs, Button, Drawer, Pagination } from '@za/ui';
 import { SlidersHorizontal } from 'lucide-react';
+import { DoodleUnderline } from '@/components/brand';
 import { useProductsQuery } from '@/features/products/api';
 import { ProductGrid } from '@/features/products/components/product-grid';
 import { FiltersPanel } from '@/features/products/components/filters-panel';
@@ -38,9 +39,12 @@ export function CategoryContent({ category }: { category: Category }) {
           className="mb-4"
         />
         <div className="mb-6 flex items-center justify-between gap-4">
-          <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
-            {category.name}
-          </h1>
+          <div>
+            <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
+              {category.name}
+            </h1>
+            <DoodleUnderline className="text-brand-rose/50 mt-1 dark:text-neutral-700" />
+          </div>
           <Button
             variant="outline"
             leadingIcon={<SlidersHorizontal className="h-4 w-4" />}

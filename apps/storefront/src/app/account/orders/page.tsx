@@ -7,7 +7,10 @@ import { RequireCustomerAuth } from '@/components/require-customer-auth';
 import { useCustomerOrdersQuery } from '@/features/orders/api';
 import type { OrderStatus } from '@/features/orders/types';
 
-const STATUS_TONE: Record<OrderStatus, 'neutral' | 'info' | 'warning' | 'success' | 'danger'> = {
+const STATUS_TONE: Record<
+  OrderStatus,
+  'neutral' | 'info' | 'warning' | 'success' | 'danger'
+> = {
   PENDING: 'neutral',
   CONFIRMED: 'info',
   PREPARING: 'info',
@@ -25,7 +28,10 @@ function OrderHistoryContent() {
     return (
       <div className="flex flex-col gap-4">
         {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton key={index} className="h-20 w-full" />
+          <Skeleton
+            key={index}
+            className="bg-brand-blush h-20 w-full dark:bg-neutral-800"
+          />
         ))}
       </div>
     );
@@ -46,15 +52,19 @@ function OrderHistoryContent() {
         <li key={order.id}>
           <Link
             href={`/account/orders/${order.id}`}
-            className="flex items-center justify-between gap-4 rounded-lg border border-neutral-200 p-4 hover:shadow-md dark:border-neutral-800"
+            className="rounded-brand-md border-brand-petal-100 bg-brand-paper hover:shadow-brand-tight flex items-center justify-between gap-4 border p-4 dark:border-neutral-800 dark:bg-neutral-900 dark:hover:shadow-none"
           >
             <div>
-              <p className="font-medium text-neutral-900 dark:text-neutral-50">Order #{order.orderNumber}</p>
-              <p className="text-sm text-neutral-500 dark:text-neutral-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+              <p className="text-brand-ink font-medium dark:text-neutral-50">
+                Order #{order.orderNumber}
+              </p>
+              <p className="text-brand-mauve text-sm dark:text-neutral-400">
+                {new Date(order.createdAt).toLocaleDateString()}
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <Badge tone={STATUS_TONE[order.status]}>{order.status}</Badge>
-              <span className="font-medium text-neutral-900 dark:text-neutral-50">
+              <span className="text-brand-ink font-medium dark:text-neutral-50">
                 {formatCurrency(order.total, { currency: order.currencyCode })}
               </span>
             </div>
@@ -68,11 +78,18 @@ function OrderHistoryContent() {
 export default function OrderHistoryPage() {
   return (
     <RequireCustomerAuth>
-      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-        <Heading level={2} as="h1" className="mb-6">
-          Order history
-        </Heading>
-        <OrderHistoryContent />
+      {/* Brand-token skin matching the rest of the theme-aware chrome (ADR 0029 §11). */}
+      <div className="bg-brand-cream dark:bg-transparent">
+        <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+          <Heading
+            level={2}
+            as="h1"
+            className="text-brand-ink mb-6 dark:text-neutral-50"
+          >
+            Order history
+          </Heading>
+          <OrderHistoryContent />
+        </div>
       </div>
     </RequireCustomerAuth>
   );

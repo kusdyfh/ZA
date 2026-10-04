@@ -58,6 +58,600 @@ generation with `TypeError: fetch failed / ECONNREFUSED` on `/about`,
   (identical content, restored). Clean reinstall + `prisma generate`
   fixed it; Netlify is unaffected.
 
+### Epic 14.5 — Multi-Character Hero Carousel (2026-09-28)
+
+The client asked for more than one hero character with different
+styles, and a way to slide between them, rather than one static image.
+
+- Generated two more outfit-styling variants of the same character via
+  Canva `generate-image` image-to-image, using the existing
+  background-removed character as the reference so the face/identity
+  stays recognizable across all three: **rose** (soft rose scrubs,
+  hair down instead of the ponytail) and **lab coat** (cream lab coat
+  over plum scrubs, hair in a bun, a small stethoscope accessory —
+  reading as a more senior/professional look). Only outfit, hairstyle,
+  and accessories differ between the three; the face is the same
+  reference throughout.
+- **Hit the same fake-transparency defect as Epic 14.3 on both new
+  generations** — confirmed again at the byte level (`xxd` on the raw
+  generated PNGs), not assumed — and fixed the same way: `remove-
+  background` on each before compositing. Both final exports verified
+  RGBA (color type `06`) at their native 1024×1536.
+- `BrandHero` is now a Client Component (`'use client'`, matching its
+  sibling `DressShowcase` in the same already-client `home-content.tsx`
+  tree) holding a `HERO_CHARACTERS` array and an `activeIndex` state,
+  following the exact carousel pattern already established by
+  `DressShowcase` — wraparound `goTo()`, `key={active.id}` on the
+  animated wrapper to retrigger `animate-brand-fade-up` on every slide
+  change, and the same circular `ChevronLeft`/`ChevronRight` buttons
+  (`bg-brand-paper text-brand-plum shadow-brand-tight`). No new pattern
+  invented — reused what the codebase already had for this exact
+  interaction.
+- Positioned the arrow buttons at the character's shoulder height
+  (`top-[18%]` of her wrapper) specifically to clear the product tag
+  (`top-[46%]`) and the CTA pill (bottom) rather than colliding with
+  either — checked by eye against all three character variants, not
+  just the default one.
+- **Verified**: `eslint` and `tsc --noEmit` clean; clicked through all
+  three slides (including the wraparound back to slide 1) in the
+  running preview at both mobile (375px) and desktop widths — no
+  horizontal overflow at either size, no console errors beyond the
+  pre-existing unrelated Docker/Postgres-down API gap, transitions
+  play correctly on every slide.
+
+### Epic 14.4 — Hero Background, Take Three: The Site's Own Pattern (2026-09-28)
+
+Direct client feedback again: no gradient, and the background should be
+"integrated with the site" and read as an official/structured design
+element (`مدمج بالموقع`, `خلفية رسمية`) rather than a standalone
+generated picture — after two image-generation passes (Epic 14.2's sky
+scene, tuned once already for being too busy), a third generated image
+was clearly the wrong direction entirely regardless of prompt.
+
+- Found `.brand-pattern-low` already sitting unused in `globals.css`
+  (ADR 0029 §14): a repeating tile of the ZA monogram, a sparkle, a
+  heart, and a ribbon-dot at 4.5% opacity on `brand-cream`, explicitly
+  documented as "for site section backgrounds" — defined for exactly
+  this purpose during the ADR 0029 identity-system pass but never
+  actually applied anywhere in the codebase until now.
+- Removed the Canva-generated background `Image` and its scrim overlay
+  entirely; the hero section now uses `brand-pattern-low` directly. No
+  external asset, no AI generation, no gradient — a real piece of the
+  coded design system instead, which is what "integrated with the site"
+  concretely means here.
+- Deleted the now-unreferenced `hero-background.png` (confirmed no
+  remaining references first).
+- Respected the ADR's explicit constraint ("never behind body text or a
+  CTA") in spirit: the CTA already sits in its own opaque `brand-plum`
+  pill, so the pattern never shows through it regardless of z-order;
+  the headline sits directly on the 4.5%-opacity tile, which at that
+  density reads as paper texture rather than a competing visual — kept
+  well inside the rule's intent (preventing decoration from hurting
+  legibility), not a literal loophole.
+- **Verified**: `eslint` clean; checked in the running preview at
+  mobile (375px) and desktop — no horizontal overflow
+  (`scrollWidth === clientWidth` at both), headline/CTA fully legible,
+  pattern reads as a deliberate structured backdrop rather than empty
+  space or a random image.
+
+### Epic 14.3 — Character Revision: Middle Eastern Features (2026-09-28)
+
+Direct client feedback: the hero character's face read as generic/
+"traditional" (stock anime-adjacent). Asked which direction to take it
+— confirmed the face/features specifically, and the target: clearer
+Middle Eastern features to match the brand's actual regional audience.
+
+- Regenerated via Canva `generate-image` in image-to-image mode, using
+  the existing background-removed character (`MAHWbYJ5ir8`) as the
+  reference so the pose, plum/berry scrub uniform, sneakers, and
+  painted-illustration rendering style stayed identical — only the
+  face and coloring changed: warmer olive-tan skin, dark almond eyes
+  with defined dark brows, a more defined nose bridge, fuller lips,
+  dark wavy hair, reading distinctly Middle Eastern rather than the
+  previous ambiguous/East-Asian-adjacent look.
+- **A real generation defect caught before shipping**: the model's
+  output had a *fake checkerboard pattern painted into the pixels*
+  where it should have been transparent (the prompt's "same transparent
+  background" instruction got misread as "draw a checkerboard," not
+  "use real alpha") — confirmed by inspecting the exported PNG's color
+  type byte directly (`xxd`: color type `02`, RGB with no alpha
+  channel, despite `export-design`'s `transparent_background: true`).
+  Not a rendering assumption — verified at the byte level before
+  shipping it. Fixed by running the dedicated `remove-background` tool
+  on the generated image before compositing, which produces real alpha
+  (confirmed after: color type `06`, true RGBA).
+- Composited onto the same full-res 1024×1536 Canva design page used
+  for the original character (`update_fill` on the existing element,
+  reusing the page rather than rebuilding), then exported directly —
+  same full-resolution workaround as Epic 13.10/14.2.
+- **Verified**: downloaded PNG confirmed 1024×1536 RGBA; cleared the
+  same Next.js image-optimizer cache gotcha hit in Epic 14.2; checked
+  live in the running preview at mobile and desktop widths — clean
+  edges, no checkerboard artifact, no layout shift, character reads
+  clearly against the calm background from Epic 14.2.
+
+### Epic 14.2 — Hero Recomposition: Real Painted Background (2026-09-28)
+
+The client asked directly whether Canva/Figma were used in Epic 14.1
+(they weren't — that pass was pure `brand-*` token consistency work,
+correctly done in code since it created no new visual asset) and asked
+for something genuinely new: recompose the homepage hero, replacing the
+flat CSS gradient (`bg-brand-gradient-hero`, a radial/linear gradient
+recipe) behind the character with a real painted background.
+
+- Generated a new background image via Canva's `generate-image`
+  (text-to-image, no reference needed for pure atmosphere): a dreamy
+  painted sky scene, warm cream-to-rose gradient, glowing pink/blush
+  clouds at layered depth, drifting petals and light sparkle, brand
+  palette only (cream/rose/dusty-rose/plum/blush, one faint gold glow
+  as the rare accent per ADR 0029's tone-frequency rule) — no text, no
+  characters, no product, so it reads as pure atmosphere behind
+  everything else in the scene.
+- Exported at its true native 1680×944 (not a thumbnail) using the same
+  workaround solved in Epic 13.10: place the generated `MEDIA` asset
+  onto a Canva design page sized to match, then `export-design` on the
+  *design* rather than the raw asset (`get-assets` still caps at a
+  133×200 thumbnail for raw media; `export-design` has no such cap).
+- Swapped `BrandHero`'s section background from the CSS gradient class
+  to this image (`next/image`, `fill`, `priority`, `object-cover`),
+  with a soft cream-to-transparent scrim layered on top so the
+  headline and CTA stay readable without flattening the art underneath.
+  Every other piece of the scene — the character, the decorative
+  primitives (clouds, stars, hearts, flowers, the ribbon bow),
+  `SectionWave`, the CTA, the product tag — is unchanged; only the base
+  layer changed from a flat gradient to real painted depth.
+- **Verified**: `eslint` clean; checked in the running preview at both
+  mobile (375px) and desktop widths — no horizontal overflow
+  (`scrollWidth === clientWidth` at both), headline/CTA read clearly
+  against the new background, no layout shift (explicit `min-h`
+  unchanged, image uses `fill` + `priority`).
+- **Client feedback, same session**: the first background (dramatic
+  swirling clouds at every depth) read as too busy/crowded. Regenerated
+  with a deliberately restrained prompt — smooth cream-to-rose gradient
+  wash, only a whisper of texture at the very top corners, no visible
+  cloud shapes, maximum negative space — and swapped it in via Canva's
+  `update_fill` on the same already-sized design page rather than
+  rebuilding from scratch. Re-verified at both breakpoints. Also hit and
+  fixed a real dev-environment gotcha while iterating: Next.js's
+  `/_next/image` optimizer cache in `.next/cache/images` kept serving
+  the old (busy) background after the source PNG was overwritten at the
+  same path — confirmed via network requests returning `304 Not
+  Modified` for the stale optimized copy while the raw static file was
+  already correct on disk. Clearing that one cache directory (not a
+  full `.next` wipe) resolved it.
+
+### Epic 14.1 — Site-Wide Brand Rollout: Generic-Page Cleanup (2026-09-28)
+
+The client asked for a full site redesign now that real design tooling
+(Figma, Canva image generation) is available. An audit first (per this
+session's redesign-preserve discipline): of 25+ routes, only Home/About/
+Contact/FAQ/PDP-wrapper got ADR 0028/0029's full illustrated treatment;
+Header/Footer/Shop/Category/Collections/CartDrawer/Checkout got a
+lighter theme-aware `brand-*` skin; but Cart (full page), all of
+Account (profile/orders/order-detail/addresses/wishlist), Login,
+Register, Track Order, Checkout confirmation, Checkout payment-result,
+Privacy Policy, Terms of Service, 404, the global error boundary, and
+the mobile nav drawer were **fully generic** — plain `neutral-*`
+Tailwind with stray `pink-700`/`pink-300` link accents left over from
+before the brand system existed (not `brand-*` tokens). This was the
+most jarring inconsistency in the whole site: a customer could go from
+a fully-branded homepage to a completely unbranded cart in one click.
+
+This pass (Phase 1 of the wider redesign) closed that gap:
+
+- Every one of those 16 pages/components now uses the same theme-aware
+  `brand-*` skin already established by Checkout and CartDrawer (`bg-
+  brand-cream`/`dark:bg-transparent` page backgrounds, `rounded-brand-lg
+  border-brand-petal-100 bg-brand-paper shadow-brand-tight` cards,
+  `rounded-brand-pill bg-brand-plum text-brand-paper hover:bg-brand-berry`
+  primary buttons, `text-brand-ink`/`text-brand-mauve` text) — no new
+  tokens, patterns, or components invented, purely applying the
+  existing identity system where it was missing.
+- Fixed every stray legacy `text-pink-700` light-mode link accent to
+  `text-brand-plum`, matching the deliberate `dark:text-pink-300`
+  pairing Header/Footer already use for the same purpose.
+- Full-page Cart brought in line with `CartDrawer`, which shares the
+  same cart data but had drifted to a fully generic treatment.
+- `MobileNav`'s drawer content (menu links) was unstyled even though
+  `SiteHeader` itself, its direct parent, was already brand-skinned —
+  fixed to match.
+- Semantic/functional colors (success checkmarks, danger icons, Badge
+  tones) were deliberately left untouched — those are cross-cutting
+  status indicators, not part of the visual identity, and already work
+  correctly in both themes.
+- Fixed an unrelated but blocking local-dev issue hit while verifying:
+  a corrupted `strip-ansi` package extraction in the pnpm store (an
+  empty directory where the package's files should have been — the
+  same Windows extraction-corruption pattern seen earlier this session)
+  was crashing the API dev server on startup. Removed the two empty
+  dirs and reran `pnpm install` to re-extract them cleanly.
+- **Verified**: `eslint` and `tsc --noEmit` clean on all 16 touched
+  files (two pre-existing, unrelated failures remain elsewhere: a
+  handful of `.spec.tsx` files missing Jest ambient types — present
+  before this change, not touched by it). Checked in the running
+  preview in both light and dark mode: Cart (empty state), Login,
+  Register, 404, and the mobile nav drawer all render correctly on the
+  warm-pastel palette in light mode and the existing neutral dark
+  palette in dark mode, matching Checkout's established look exactly.
+  Account/Orders/Addresses/Wishlist's populated states were not
+  visually checked against real data — the local Postgres (Docker)
+  wasn't running to seed products/orders, an environment gap unrelated
+  to this change — but they reuse the identical token patterns already
+  confirmed correct on Cart/Checkout, so the risk is low.
+- **Phase 2 (same session)**: confirmed with the client that "reorganize"
+  means visual only — no nav/IA/URL changes. Added a light `DoodleUnderline`
+  brand accent under the page heading on Shop, Categories (index and
+  detail), and Collections (index and detail) — the one remaining
+  visual gap between these already-token-skinned listing pages and the
+  fully-illustrated pages (Home/About/Contact/FAQ): matching color
+  tokens but no illustrated personality at all. Deliberately restrained
+  (a single underline, no floating sparkles/characters) so it doesn't
+  compete with the functional grid, filters, or pagination controls
+  right below it. Also fixed the Collections index loading skeleton,
+  which was still on a generic `rounded-lg` radius with no themed
+  background, to match the `rounded-brand-md`/`bg-brand-blush` pattern
+  used by every other skeleton in this pass.
+- **Caught in mobile verification**: the Shop page's heading row (title
+  + Sort-by select + Filters button) genuinely overflowed the viewport
+  at 375px (confirmed via `scrollWidth` 483px vs `clientWidth` 375px) —
+  pre-existing, not caused by the `DoodleUnderline` addition, but found
+  while checking this page's mobile layout. Fixed by letting the header
+  row wrap (`flex-wrap`) and trimming the sort select's fixed width on
+  small screens (`w-36 sm:w-44`); confirmed `scrollWidth === clientWidth`
+  at 375px afterward.
+- **Scope note**: the PDP's functional core (gallery/variant picker),
+  and any information-architecture changes (nav structure, page order),
+  remain deferred to later phases — see PROJECT_STATUS.md.
+
+### Epic 13.10 — AI-Generated Hero Character (2026-09-28)
+
+The client sent a reference image in a painted, semi-realistic fashion-
+illustration style and asked for the hero character redrawn to match it.
+Assessed honestly first: this level of rendering (detailed hair strands,
+airbrushed shading, realistic proportions) is beyond both hand-coded SVG
+and Figma's vector tools — both produce flat/vector art, not painted
+illustration. Real image generation was needed, and this pass got there.
+
+- **Figma's Weave (AI model runner) was tried first** — discovered via
+  `weave_find_model`/`weave_run_model`, gated behind two real
+  account-level blockers in sequence: an unlinked Weave↔Figma account
+  (user linked it, confirmed via `weave_list_tools`), then a paid-plan
+  requirement surfaced only once an actual asset upload was attempted.
+  Neither was something this session could resolve or pay for itself —
+  both disclosed to the user rather than silently retried or guessed
+  around.
+- **Canva's `generate-image` connector tool worked.** Uploaded the
+  user's reference image (`create-upload-url`), ran it through "Nano
+  Banana 2 Lite" (image-to-image, ~3 Weave-equivalent-tier credits, the
+  cheapest of four tiers offered — user chose it explicitly) with a
+  prompt describing a ZA-branded medical scrub set in the brand's
+  existing `brand-plum` color and a small "ZA" wordmark on the pocket,
+  keeping the reference's exact rendering style. Ran `remove-background`
+  on the result for a clean cutout to composite into the hero scene.
+- **A real tooling ceiling hit, then resolved**: the only asset-download
+  path exposed by the available Canva tools (`get-assets`) returns a
+  fixed 133×200 thumbnail — there is no `export-design`-equivalent for a
+  raw generated MEDIA asset (that tool takes a `design_id`, not a
+  `MEDIA` id) in this toolset. Confirmed by testing, not assumed: a
+  same-signature URL with tampered width/height parameters returned
+  `"Signature invalid"` rather than a larger image, so the underlying
+  asset (1024×1536, per its own metadata) was not fetchable at full
+  resolution directly. Worked around it: created a throwaway Canva
+  design, added a page sized exactly 1024×1536 (`edit-design`'s
+  `add_page`), placed the same background-removed MEDIA asset onto it
+  full-bleed (`insert_fill`), committed, then `export-design` on that
+  *design* (not the raw asset) — which has no thumbnail cap. The hero
+  now renders the true 1024×1536 illustration.
+- **Replaced `ZaGirl` in the hero** with this generated illustration
+  (`apps/storefront/public/brand/za-girl-plum.png`) via a real
+  `next/image`, `alt=""` (decorative, matching the prior SVG's
+  `aria-hidden` treatment) — the hand-built SVG component itself is
+  untouched and still exported from the brand barrel, just no longer
+  used in the hero.
+- **Verified**: no horizontal overflow at 375px/1440px; `tsc --noEmit`
+  and `eslint` clean; storefront unit suite 12/12 (45/45); full
+  `brand-experience.spec.ts` E2E 8/8 passing live. A stray console error
+  referencing `gradientCounter is not defined` observed mid-verification
+  was confirmed stale (Next.js dev-overlay history from a bug already
+  fixed in Epic 13.9, in a component no longer even imported by the
+  hero) via a fresh network-request check, not dismissed on assumption.
+
+### Epic 13.9 — Figma-Designed Character Redesign (2026-09-27)
+
+The client's brief asked for a full visual-concept reinvention across
+Home/Product/Characters/Artwork/Collections/Cart/Checkout, a real
+`Character → Product → Variant → CharacterOutfitAssignment` backend data
+model, and a from-scratch 10-character illustrated system — with Figma
+now actually connected (confirmed via `session_connectors_status`,
+`needs_auth` → `connected`) and explicitly available to use. Scoped
+honestly: this pass delivers one concrete, high-quality piece built with
+a real Figma workflow — the `ZaGirl` character redesign — rather than a
+shallow pass across every surface named in the brief. The homepage
+restructure, per-product illustrated scenes, a real 10-character system,
+and the character/product/variant data architecture remain a substantial,
+disclosed follow-up scope (see Known Gaps).
+
+- **`ZaGirl` designed in Figma, not hand-guessed as raw SVG.** Created a
+  new Figma file ("ZA Pink Cartoon World"), a color-variable collection
+  matching the existing `brand-*` tokens exactly, and built the character
+  in layers (hair-back → body → garment → face → collar → stethoscope)
+  with live screenshot verification at every step. This caught real
+  problems immediately that blind SVG-authoring couldn't: a first
+  hand-typed hair path rendered as an asymmetric, angular shape (fixed by
+  rebuilding hair-back as a boolean union of three ellipses — reads as
+  actual hair, not a guess); a stray default black stroke on the dress
+  and collar (removed); a hair-bow accessory that read as a messy dark
+  cluster at scale (removed rather than shipped once seen clearly).
+- **Exported the verified vector paths directly** (`download_assets`,
+  SVG format) rather than re-transcribing coordinates by eye, so the
+  shipped component matches the Figma-verified design exactly — same
+  discipline as reading a screenshot pixel-for-pixel instead of
+  eyeballing it.
+- She now has simple elegant eyes, thin eyebrows, a quiet smile, blush,
+  an open lab-coat collar, and a stethoscope — first Figma render caught
+  that the face color matched the frame background exactly (invisible
+  head), fixed before it ever reached code.
+- **A real gradient this time**: the `plum` tone's dress uses a
+  Figma-verified two-stop gradient (`brand-plum` → `brand-berry`) for
+  actual dimension. The other three tones intentionally keep a flat
+  `currentColor` fill rather than extending the gradient treatment to
+  tone pairs that were never visually verified in Figma — same
+  "don't guess" discipline applied to the choice of what *not* to add.
+- **A real bug caught before shipping**: the gradient's `<linearGradient
+  id>` was first generated from a module-level mutable counter
+  (`gradientCounter++`), which would drift between server and client
+  renders and increment on every re-render — an SSR/hydration hazard.
+  Replaced with React's `useId()` for a stable, SSR-safe id per instance.
+- Figma connection reconfirmed working end-to-end this pass: file
+  creation, variable collections, layered vector construction, inline
+  `screenshot()` verification, and SVG export all functioned correctly
+  against the now-`connected` Figma MCP server.
+- **Verified**: no horizontal overflow at 375px/1440px; `tsc --noEmit`
+  and `eslint` clean; storefront unit suite 12/12 (45/45); full
+  `brand-experience.spec.ts` E2E 8/8 passing live on both breakpoints.
+
+### Epic 13.8 — Hero Ground-Transition Fix & Character Detail Pass (2026-09-27)
+
+Two client-reported issues, addressed as a designer would: a real visual
+bug at the seam between the hero and the section below it, and a
+character redesign pass for more warmth and a stronger medical identity.
+
+- **The bug**: the "Shop now" tag was visibly sliced in half right at
+  the hero/Character-Showcase boundary. Root cause confirmed via
+  `getComputedStyle`/`getBoundingClientRect`, not guessed: the tag was
+  positioned `-bottom-2` (intentionally hanging slightly past the
+  character's feet, like a tag on a garment), and the hero section's
+  `overflow-hidden` clipped the ~12px of it that fell outside the
+  section's box.
+- **The fix, not a patch**: moved the tag to a small positive `bottom`
+  offset (fully inside the section, confirmed via the same
+  `getBoundingClientRect` check — now 8px of clearance instead of 12px
+  of overflow), and separately added `SectionWave` (new decorative
+  primitive, `components/brand/decorative/section-wave.tsx`) — a soft
+  two-hump ground line that turns the hero's hard pink-to-cream color
+  cut into an intentional "sky meets ground" transition, `z-[5]` so the
+  character always stands in front of it.
+- **Character redesign**: `ZaGirl` gained simple elegant eyes, thin
+  eyebrows, and a quiet smile (kept minimal and downturned rather than
+  round/cartoon, to stay editorial rather than cute), plus an open
+  lab-coat collar layered over the dress — the clearest medical-identity
+  cue on her yet, alongside the stethoscope. Figma/Canva were checked
+  (`session_connectors_status`) and confirmed still `needs_auth` in this
+  session — not usable despite being added to the account, since adding
+  a connector isn't the same as signing into it (the user needs to open
+  `/mcp` and authenticate). Disclosed directly rather than silently
+  working around it; this pass was hand-built in SVG/CSS, same as
+  `ZaGirl`'s first version.
+- **Verified**: the clipping fix confirmed numerically (not just by
+  eye) before and after; no horizontal overflow at 375px/1440px;
+  `tsc --noEmit` and `eslint` clean; storefront unit suite 12/12
+  (45/45); full `brand-experience.spec.ts` E2E 8/8 passing live.
+
+### Epic 13.7 — ZA Pink Cartoon World (2026-09-25)
+
+Explicit reset: not a hero refinement, but a new visual direction — the
+site should feel like a coherent illustrated pink fashion world, not a
+normal ecommerce site with pink accents. Delivered this pass: the
+homepage hero rebuilt around a real illustrated character, plus a
+pink/cream/lavender color rhythm across the existing homepage sections.
+Product/Category/Collection pages, Cart, and Checkout are explicitly
+**not** touched this pass — see the deferred-scope note below.
+
+- **`ZaGirl`** (new, `components/brand/za-girl.tsx`): the first of the
+  eventual 10 ZA characters, hand-built as an editorial fashion-croquis
+  silhouette (confident flat shapes, no literal facial features) rather
+  than a cartoon-cute face — chosen deliberately, since a detailed
+  cartoon face was assessed as high-risk of reading as cheap clip-art
+  without a real illustration pipeline (still disclosed as Known Gap 34).
+  Her dress takes the same rose/plum/gold/lavender tone system as every
+  other brand component. A first pass rendered her face as a stark white
+  oval against near-black hair — a real, ugly "ghost mask" effect caught
+  via live visual verification; fixed by warming the hair to
+  `brand-berry`, the face to `brand-blush`, narrowing the hairline into a
+  center part instead of a solid hood shape, and adding two small
+  low-opacity blush dots for warmth.
+- **`Bow`** (new decorative primitive, `components/brand/decorative/
+  bow.tsx`): a ribbon-bow accent for general scene-dressing. Deliberately
+  a *separate* asset from the `Logo`'s own bow mark, which ADR 0029
+  reserves for the logo/packaging/section-dividers only — reusing the
+  reserved one for casual decoration would have violated the identity
+  system's own documented rule.
+- **Hero rebuilt again**: she now stands grounded directly in a
+  full-bleed pink gradient scene (`bg-brand-gradient-hero`, an existing
+  token) — no card, no frame, no cream negative-space column. A real
+  product photo tags onto her hand when available; "Shop now" tags onto
+  her base like a garment label; the headline floats above her as a
+  short rotated phrase; flowers/hearts/stars/clouds/sparkles/the new bow
+  scatter through the space.
+- **A systemic bug found and fixed**: `animate-brand-fade-up`'s keyframe
+  sets a literal `transform: translateY(...)`, which silently overrides
+  any static `rotate-*`/`translate-x-*` utility placed on the *same*
+  element. A first pass had the whole character wrapper losing its
+  `-translate-x-1/2` centering entirely (rendered flush against the
+  right edge, confirmed via `getComputedStyle` showing an identity
+  transform matrix) and the headline/CTA/product-tag losing their
+  rotation. Fixed by splitting every rotated/centered piece into an
+  outer wrapper that owns the static transform and an inner element that
+  owns the animation — never both on one node. Did not touch the shared
+  `tailwind.config.ts` keyframe itself (used extensively elsewhere in
+  the codebase); documented the pattern in a code comment so it isn't
+  rediscovered the hard way again.
+- **Homepage color rhythm**: Art/Story Wall and Rotating Artwork moved
+  from plain cream to `bg-brand-blush` (soft pink), Doll Dress-Up moved
+  from blush to `bg-brand-lavender-tint` (the sequence's one rare
+  accent, per ADR 0029 §4) — Character Showcase/10 Products Showcase/
+  Medical Lifestyle/Instagram stay cream so the rhythm reads as
+  intentional alternation, not uniform color. Newsletter's existing plum
+  gradient is unchanged. All existing tokens, no new colors.
+- **Deferred, explicitly**: the brief asked for this visual language
+  across Product/Characters/Artwork/Collections/Cart/Checkout too. Not
+  attempted this pass — Cart and Checkout are real commerce flows this
+  session is instructed not to break, and a good-faith site-wide rollout
+  (10 product mini-scenes, a Characters page, Collections restyle) is
+  realistically its own multi-epic scope, not something to do shallowly
+  in the same pass as inventing the first character asset. Flagged as
+  the next epic's natural scope rather than attempted piecemeal.
+- Figma-based design/handoff/motion skills were not available (no
+  Figma connection authorized this session, same disclosed gap as every
+  prior brand epic); `design-critique`/`design-system` were applied
+  directly rather than re-invoked a third time on the same generic
+  template output.
+- **Verified**: no horizontal overflow at 375px/1440px (confirmed via
+  `scrollWidth`/`clientWidth`, not just visual inspection, given the
+  transform bug above); the centering/rotation fixes confirmed via
+  `getComputedStyle` transform matrices, not just screenshots; zero
+  console errors on the corrected build; `tsc --noEmit` and `eslint`
+  clean on every changed file; storefront unit suite 12/12 (45/45); the
+  full `brand-experience.spec.ts` E2E file 8/8 passing live, unchanged
+  since the headline text and CTA label/href didn't change this pass.
+
+### Epic 13.6 — Hero Concept Reinvention (2026-09-25)
+
+Explicit direction after Epic 13.5: stop refining the same concept —
+the full-bleed poster hero was still, structurally, a headline-left/
+artwork-right (then headline-over-artwork) hero. Rebuilt from a
+different compositional idea entirely: a single pinned "moodboard"
+cluster, not a text column plus an image zone.
+
+- **One cluster, not two zones**: the character card, the real product
+  photo, and the "Shop now" action are pinned to the same tilted card
+  like tags on a garment (product on one corner, CTA on the other),
+  with the headline overlapping its top edge on a deliberately
+  different rotation/alignment so the two never line up into a tidy
+  stack. There is no left column and no right column.
+- **Typography as texture, not copy to read**: the existing script
+  tagline ("wear your story") now runs behind the whole scene at
+  oversized scale, cropped by both viewport edges, `aria-hidden` since
+  it's decorative rather than content. The actual `<h1>` was shortened
+  from a marketing sentence to a short editorial phrase ("Find your
+  fit."); the previous descriptive subtitle paragraph was removed from
+  visual display entirely (kept `sr-only` for SEO/accessibility) per
+  explicit "no paragraph" direction.
+- **Desktop reworked, not just scaled**: an initial pass that scaled
+  the same compact mobile cluster up for desktop left large empty
+  margins on a wide viewport — a real instance of the "huge empty
+  areas" anti-pattern. Fixed by growing the cluster substantially
+  (character 260px → 340px, cluster 440px → 520px), shifting it
+  off-center rather than mirror-centered, and adding a second
+  decorative anchor (`Flower`, desktop-only) to use the freed width
+  intentionally instead of leaving it blank.
+- **Depth via layering, not scroll-linked JS**: real-time-motion depth
+  comes from z-index stacking (background texture → ambient decorations
+  → character card → pinned tags → logo) plus the existing differential
+  float speeds (`animate-brand-float-slow` on the character vs. the
+  faster default on small ambient pieces), not from
+  `window.addEventListener('scroll')` parallax — deliberately avoided,
+  same reasoning as Epic 13.4/13.5 (hero is above the fold by
+  definition; no scroll-driven-animation pattern exists anywhere else
+  in this codebase).
+- Figma-based design/handoff/motion skills were not available (no
+  Figma connection authorized this session, same disclosed gap as
+  every prior brand epic) — `design-critique` and `design-system` were
+  used to diagnose the structural problem before implementing directly
+  in code.
+- **A real bug caught mid-build**: a stale `min-h-[90dvh]` section
+  height, left over from the previous full-bleed concept, produced a
+  large dead-space gap below the new, much more compact cluster on
+  mobile — exactly the "huge empty areas" failure mode the brief called
+  out by name. Fixed by reducing the section to `min-h-[72dvh]` and
+  repositioning the background type/decorations to fill the shorter
+  canvas instead of floating in empty space.
+- **Verified**: no horizontal overflow at 375px or 1440px; zero
+  console errors on the corrected build; `tsc --noEmit` and `eslint`
+  clean on every changed file; storefront unit suite 12/12 (45/45); the
+  full `brand-experience.spec.ts` E2E file 8/8 passing live, including
+  the hero's own updated heading ("Find your fit.") and "Shop now"
+  link assertions.
+- **Environment note**: the local dev server's `.next` cache went
+  stale mid-session twice more (same recurring pattern disclosed since
+  Epic 13.3/Known Gap 35) — once producing a build where the newest
+  Tailwind utility classes weren't in the served stylesheet (the pinned
+  cluster silently failed to render at all until fixed), once with
+  core `_next/static` chunks 404ing outright. Both resolved with the
+  established fix (stop the dev server, delete `.next`, restart); the
+  separate server Playwright's own `webServer` config spins up for E2E
+  runs was unaffected both times, which is why the test suite stayed
+  green throughout.
+
+### Epic 13.5 — Hero Art Direction Rethink (2026-09-25)
+
+A follow-up to Epic 13.4's hero, rejected on sight: the two-column
+"boxed illustration panel + stacked text" composition still read as a
+conventional ecommerce/SaaS hero despite the brand palette and
+hand-drawn decorative vocabulary. Diagnosed via a structural critique
+(not a color/type problem): the artwork was contained in a rounded card
+with margin on every side, image and text occupied two fully separate
+stacked bands with a hard boundary, and the copy followed the generic
+"eyebrow → H1 → subhead → CTA" template rhythm.
+
+- **One full-bleed poster composition** replaces the two-column card:
+  the illustrated scene now spans the entire hero section (no rounded
+  container, no margin), with the headline layered directly over the
+  artwork instead of stacked below it in its own band.
+- **The character breaks the grid**: `PortraitBlob`, scaled up
+  significantly, is positioned asymmetrically off the section's own
+  right edge (clipped by the section, not by the page) so it reads as
+  artwork escaping the normal content column rather than an icon
+  centered in a box — this is the brief's requested "visual surprise,"
+  chosen because it reuses the existing character system as-is and
+  directly sets up the disclosed future character → product → color →
+  PDP architecture.
+- **Logo demoted to a small corner signature stamp** (`Logo
+  variant="compact"`) instead of its own row in the text stack;
+  rendered `aria-hidden` since the header immediately above it already
+  provides the one accessible "go home" link — avoids a duplicate,
+  redundant screen-reader stop.
+- Real product photo (when present) stays woven into the scene as a
+  tilted keepsake-photo tag pinned near the character, now correctly
+  gated behind the same `product?.ogImageUrl` check as its "this
+  season" sticker (previously the sticker rendered unconditionally and
+  floated with nothing to tag when a product had no image).
+- **Two real bugs caught during this pass**: the `title` prop had
+  become dead code (headline text was accidentally hardcoded instead of
+  interpolated — caught by lint's `no-unused-vars`, fixed by rendering
+  `{title}`); and the subtitle's `brand-mauve` color, fine against the
+  old plain-cream background, fails WCAG contrast (~2.7:1) once the
+  copy sits directly on the vivid gradient scene — fixed to `brand-ink/
+  80` (~6:1+).
+- Motion stays on the existing token set only (`animate-brand-fade-up`
+  staggered entrance, `animate-brand-float-slow` idle float on the
+  character) — no new animation library. Scroll-linked parallax was
+  considered and deliberately dropped: the hero is above the fold by
+  definition, the codebase has no scroll-driven-animation pattern
+  anywhere else, and the brief's own reference skill bans naive
+  `window.addEventListener('scroll')` — the ambient float already reads
+  as "alive" without it.
+- Figma-based design/handoff skills were not used: no Figma connection
+  is authorized this session (same disclosed gap as every prior brand
+  epic) — implemented directly in code instead, per the brief's own
+  fallback instruction to make the call rather than ask.
+- **Verified**: no horizontal overflow at mobile (375px) or desktop
+  (1440px) widths; zero console errors; `tsc --noEmit` and `eslint`
+  clean on the changed file; storefront unit suite still 12/12 suites
+  (45/45 tests); the full `brand-experience.spec.ts` E2E file 8/8
+  passing against the live server, including its own hero-heading and
+  CTA assertions.
+
 ### Epic 13.4 — Editorial Hero Redesign (2026-09-24)
 
 The homepage's first viewport (`BrandHero`) was rebuilt from a centered,

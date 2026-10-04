@@ -5,6 +5,7 @@ import {
   QueryClient,
 } from '@tanstack/react-query';
 import { Heading } from '@za/ui';
+import { DoodleUnderline } from '@/components/brand';
 import { categoryTreeQueryOptions } from '@/features/categories/api';
 import { buildMetadata } from '@/lib/seo';
 import { CategoryTreeList } from '@/features/categories/components/category-tree-list';
@@ -28,10 +29,11 @@ export default async function CategoriesPage() {
           <Heading
             level={2}
             as="h1"
-            className="text-brand-ink mb-6 dark:text-neutral-50"
+            className="text-brand-ink dark:text-neutral-50"
           >
             Categories
           </Heading>
+          <DoodleUnderline className="text-brand-rose/50 mb-6 mt-1 dark:text-neutral-700" />
           <CategoryTreeList />
         </div>
       </div>

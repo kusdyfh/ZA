@@ -1,6 +1,7 @@
 'use client';
 
 import { Breadcrumbs } from '@za/ui';
+import { DoodleUnderline } from '@/components/brand';
 import { useCollectionProductsQuery } from '@/features/collections/api';
 import { ProductGrid } from '@/features/products/components/product-grid';
 import { BreadcrumbLink } from '@/components/breadcrumb-link';
@@ -27,6 +28,7 @@ export function CollectionContent({ collection }: { collection: Collection }) {
         <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
           {collection.name}
         </h1>
+        <DoodleUnderline className="text-brand-rose/50 mt-1 dark:text-neutral-700" />
         {collection.description && (
           <p className="text-brand-mauve mt-2 max-w-2xl dark:text-neutral-400">
             {collection.description}

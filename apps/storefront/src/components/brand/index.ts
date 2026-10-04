@@ -19,5 +19,7 @@ export { PortraitBlob } from './portrait-blob';
 export { QuoteSection } from './quote-section';
 export { RotatingArtwork } from './rotating-artwork';
 export { StorySection } from './story-section';
+export { ZaGirl } from './za-girl';
+export type { ZaGirlProps } from './za-girl';
 
 export * from './decorative';

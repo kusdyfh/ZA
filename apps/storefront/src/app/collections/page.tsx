@@ -5,6 +5,7 @@ import {
   QueryClient,
 } from '@tanstack/react-query';
 import { Heading } from '@za/ui';
+import { DoodleUnderline } from '@/components/brand';
 import { collectionsQueryOptions } from '@/features/collections/api';
 import { buildMetadata } from '@/lib/seo';
 import { CollectionsContent } from './collections-content';
@@ -28,10 +29,11 @@ export default async function CollectionsPage() {
           <Heading
             level={2}
             as="h1"
-            className="text-brand-ink mb-6 dark:text-neutral-50"
+            className="text-brand-ink dark:text-neutral-50"
           >
             Collections
           </Heading>
+          <DoodleUnderline className="text-brand-rose/50 mb-6 mt-1 dark:text-neutral-700" />
           <CollectionsContent />
         </div>
       </div>

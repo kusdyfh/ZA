@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button, Drawer, Pagination, Select } from '@za/ui';
 import { SlidersHorizontal } from 'lucide-react';
+import { DoodleUnderline } from '@/components/brand';
 import { useProductsQuery } from '@/features/products/api';
 import { ProductGrid } from '@/features/products/components/product-grid';
 import { FiltersPanel } from '@/features/products/components/filters-panel';
@@ -37,14 +38,17 @@ export function ShopContent() {
   return (
     <div className="bg-brand-cream dark:bg-transparent">
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
-            Shop
-          </h1>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
+              Shop
+            </h1>
+            <DoodleUnderline className="text-brand-rose/50 mt-1 dark:text-neutral-700" />
+          </div>
           <div className="flex items-center gap-3">
             <Select
               aria-label="Sort by"
-              className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose w-44"
+              className="rounded-brand-md border-brand-petal-100 focus-visible:border-brand-rose w-36 sm:w-44"
               value={filters.sort ?? ''}
               onChange={(event) =>
                 filters.setParams({ sort: event.target.value }, false)

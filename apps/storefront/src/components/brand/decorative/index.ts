@@ -1,3 +1,5 @@
+export { Bow } from './bow';
+export { SectionWave } from './section-wave';
 export { Sparkle } from './sparkle';
 export { TwinkleStar } from './twinkle-star';
 export { Cloud } from './cloud';
