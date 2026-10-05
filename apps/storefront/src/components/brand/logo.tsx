@@ -1,16 +1,20 @@
+import Image from 'next/image';
 import { cn } from '@za/shared';
 
 export interface LogoProps {
   /**
-   * `primary` — the full lockup (Z+A, bow ribbon at the junction, the
-   * stethoscope-to-heart mark near the A) for hero/signature moments.
-   * `wordmark` — Z+A only, for the header/footer/anywhere height is tight.
-   * `compact` — a circular monogram badge, for the mobile header and any
-   * context under ~48px tall.
+   * `wordmark` — the real ZA STORE logo (the geometric Z/A monogram over
+   * the "ZA STORE" wording), for the header and footer. Size it by height
+   * (`h-12`, etc.); the width follows.
+   * `compact` — the same logo inside a small petal-pink circle, for the
+   * hero corner and any context under ~48px.
+   * `primary` — the older type-built Z+A lockup with a bow and
+   * stethoscope-heart; no longer used by the pages, kept for reference.
    */
   variant?: 'primary' | 'wordmark' | 'compact';
   /**
-   * `auto` follows the site's light/dark toggle (for theme-aware chrome —
+   * Applies to the type-built `primary` lockup only — the real logo is a
+   * fixed black artwork. `auto` follows the site's light/dark toggle (for theme-aware chrome —
    * header, footer). `fixed-light` always renders the rose/plum combo
    * regardless of theme, for placements on ADR 0029 §11's fixed-light
    * surfaces (Hero, editorial headers). `on-rose` is the paper+plum combo
@@ -19,6 +23,11 @@ export interface LogoProps {
   tone?: 'auto' | 'fixed-light' | 'on-rose';
   className?: string;
 }
+
+/** The real logo artwork: black linework on a transparent background (Canva export, 800x1000). */
+const LOGO_SRC = '/brand/za-logo.png';
+const LOGO_WIDTH = 800;
+const LOGO_HEIGHT = 1000;
 
 const Z_TONE_CLASSES: Record<NonNullable<LogoProps['tone']>, string> = {
   auto: 'text-brand-rose dark:text-brand-petal-300',
@@ -120,13 +129,17 @@ export function Logo({
     return (
       <span
         className={cn(
-          'bg-brand-petal-100 font-display inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base font-extrabold leading-none',
+          'bg-brand-petal-100 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full',
           className,
         )}
-        aria-label="ZA"
       >
-        <span className={Z_TONE_CLASSES[tone]}>Z</span>
-        <span className={cn('-ms-0.5', A_TONE_CLASSES[tone])}>A</span>
+        <Image
+          src={LOGO_SRC}
+          alt="ZA"
+          width={LOGO_WIDTH}
+          height={LOGO_HEIGHT}
+          className="h-[22px] w-auto"
+        />
       </span>
     );
   }
@@ -163,15 +176,13 @@ export function Logo({
   }
 
   return (
-    <span
-      className={cn(
-        'font-display inline-flex items-center text-2xl font-extrabold leading-none',
-        className,
-      )}
-      aria-label="ZA"
-    >
-      <span className={Z_TONE_CLASSES[tone]}>Z</span>
-      <span className={cn('-ms-[0.06em]', A_TONE_CLASSES[tone])}>A</span>
-    </span>
+    <Image
+      src={LOGO_SRC}
+      alt="ZA Store"
+      width={LOGO_WIDTH}
+      height={LOGO_HEIGHT}
+      sizes="64px"
+      className={cn('h-12 w-auto', className)}
+    />
   );
 }

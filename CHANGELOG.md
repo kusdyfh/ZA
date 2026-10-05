@@ -8,6 +8,26 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.12 — The Real ZA STORE Logo (2026-10-06)
+
+The client supplied the actual logo (a geometric line monogram of Z and A
+over "ZA STORE", black on lilac, with an Instagram handle at the bottom)
+and asked for it to replace the type-built wordmark.
+
+- **Artwork:** background removed with Canva, cropped to the monogram and
+  the "ZA STORE" wording (the handle is cropped out), exported as a
+  transparent PNG at 800x1000 to `apps/storefront/public/brand/za-logo.png`
+  (the same scratch Canva design as Epic 14.9, page 3). It is a raster
+  made from a 720px-wide source; a vector (SVG) master from the client
+  would be sharper at large sizes.
+- **`Logo`** now renders it: `wordmark` (header, footer) is the image
+  sized by height, `compact` (hero corner badge) is the image inside the
+  petal circle. The type-built `primary` lockup is untouched but unused.
+  The `tone` prop no longer affects wordmark/compact (the artwork is
+  fixed black), which is fine on the cream surfaces it sits on.
+- At header size (44-48px tall) the "ZA STORE" wording is too small to
+  read; the monogram carries the mark there. It reads fully in the footer.
+
 ### Epic 14.11 — Hero Looks: Swipe and Auto-Advance (2026-10-05)
 
 The hero's three looks are no longer changed with arrow buttons.

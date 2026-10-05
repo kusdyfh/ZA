@@ -41,7 +41,7 @@ export function SiteHeader() {
           aria-label="ZA Store, home"
           className="focus-visible:shadow-focus rounded-md focus-visible:outline-none"
         >
-          <Logo variant="wordmark" tone="fixed-light" className="text-3xl" />
+          <Logo variant="wordmark" className="h-11 sm:h-12" />
         </Link>
 
         <div className="flex items-center justify-end gap-0.5 sm:gap-1">

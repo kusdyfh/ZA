@@ -57,7 +57,7 @@ export function SiteFooter() {
     <footer className="border-brand-petal-100 bg-brand-cream border-t dark:border-neutral-800 dark:bg-transparent">
       <div className="mx-auto grid max-w-6xl grid-cols-2 gap-8 px-4 py-12 sm:px-6 md:grid-cols-5">
         <div className="col-span-2 md:col-span-1">
-          <Logo variant="wordmark" tone="auto" />
+          <Logo variant="wordmark" className="h-16" />
           <p className="text-brand-mauve mt-3 max-w-xs text-sm dark:text-neutral-400">
             Premium medical scrubs, lab coats, and accessories — soft, modern,
             and made for long shifts.
