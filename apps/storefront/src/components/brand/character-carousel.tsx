@@ -1,50 +1,42 @@
 'use client';
 
-import { useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@za/shared';
 import type { CharacterCardProps } from './character-card';
 import { CharacterCard } from './character-card';
+import { useDragScroll } from './use-drag-scroll';
 
 export interface CharacterCarouselProps {
   characters: CharacterCardProps[];
 }
 
-/** A horizontal, scroll-snapping row of `CharacterCard`s (ADR 0028 §6). Native scroll + snap, no extra state — arrow buttons are a convenience for pointer users, not required for keyboard/touch scrolling. */
+/**
+ * A horizontal, scroll-snapping row of `CharacterCard`s (ADR 0028 §6). It is
+ * moved by dragging: touch uses the browser's own swipe scrolling, and the
+ * mouse gets click-and-drag (`useDragScroll`). The wheel and the keyboard
+ * (tabbing to a card brings it into view) still scroll it too. The cards run
+ * past the container's edge, which is what hints that there is more.
+ */
 export function CharacterCarousel({ characters }: CharacterCarouselProps) {
-  const scrollerRef = useRef<HTMLDivElement>(null);
-
-  function scrollBy(amount: number) {
-    scrollerRef.current?.scrollBy({ left: amount, behavior: 'smooth' });
-  }
+  const { ref, isDragging, handlers } = useDragScroll<HTMLDivElement>();
 
   return (
-    <div className="relative">
-      <div
-        ref={scrollerRef}
-        className="flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth pb-4 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-      >
-        {characters.map((character) => (
-          <div key={character.name} className="snap-start">
-            <CharacterCard {...character} />
-          </div>
-        ))}
-      </div>
-      <button
-        type="button"
-        aria-label="Scroll characters left"
-        onClick={() => scrollBy(-240)}
-        className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush absolute -left-4 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full p-2 sm:flex"
-      >
-        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-label="Scroll characters right"
-        onClick={() => scrollBy(240)}
-        className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush absolute -right-4 top-1/2 hidden -translate-y-1/2 items-center justify-center rounded-full p-2 sm:flex"
-      >
-        <ChevronRight className="h-5 w-5" aria-hidden="true" />
-      </button>
+    <div
+      ref={ref}
+      {...handlers}
+      className={cn(
+        'flex gap-5 overflow-x-auto pb-4 [-ms-overflow-style:none] [scrollbar-width:none] md:cursor-grab [&::-webkit-scrollbar]:hidden',
+        // Snapping and smooth scrolling are off mid-drag so the row tracks the
+        // pointer, then back on so it settles on a card.
+        isDragging
+          ? 'cursor-grabbing snap-none scroll-auto'
+          : 'snap-x snap-mandatory scroll-smooth',
+      )}
+    >
+      {characters.map((character) => (
+        <div key={character.name} className="snap-start">
+          <CharacterCard {...character} />
+        </div>
+      ))}
     </div>
   );
 }

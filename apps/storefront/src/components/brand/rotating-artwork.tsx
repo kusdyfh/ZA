@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { KeyboardEvent } from 'react';
+import { cn } from '@za/shared';
 import {
   Cloud,
   Flower,
@@ -9,6 +10,7 @@ import {
   Sparkle,
   TwinkleStar,
 } from './decorative';
+import { SWIPE_SURFACE_CLASS, useSwipe } from './use-swipe';
 
 interface ArtworkScene {
   id: string;
@@ -53,13 +55,23 @@ const ROTATE_MS = 4500;
  * "Rotating Artwork" — an auto-advancing carousel of purely decorative
  * illustration panels (no product data). Each scene is an abstract
  * composition in the brand's own decorative language, matching ADR 0028's
- * disclosed local-placeholder-art precedent. Auto-rotation pauses on
- * hover/focus and respects `prefers-reduced-motion` (manual controls only).
+ * disclosed local-placeholder-art precedent. The scenes change by swiping or
+ * dragging the panel (mouse or touch) or with the left/right arrow keys; there
+ * are no buttons. Auto-rotation pauses on hover/focus and while dragging, and
+ * respects `prefers-reduced-motion` (manual control only).
  */
 export function RotatingArtwork() {
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const reducedMotionRef = useRef(false);
+
+  function goTo(next: number) {
+    setIndex(((next % SCENES.length) + SCENES.length) % SCENES.length);
+  }
+
+  const { dragX, isDragging, handlers } = useSwipe((direction) =>
+    goTo(index + direction),
+  );
 
   useEffect(() => {
     reducedMotionRef.current = window.matchMedia(
@@ -67,74 +79,86 @@ export function RotatingArtwork() {
     ).matches;
   }, []);
 
+  // Rebuilt after every change of scene, so a swipe restarts the countdown.
   useEffect(() => {
-    if (isPaused || reducedMotionRef.current) return;
+    if (isPaused || isDragging || reducedMotionRef.current) return;
     const timer = setInterval(() => {
       setIndex((current) => (current + 1) % SCENES.length);
     }, ROTATE_MS);
     return () => clearInterval(timer);
-  }, [isPaused]);
+  }, [isPaused, isDragging, index]);
 
-  function goTo(next: number) {
-    setIndex(((next % SCENES.length) + SCENES.length) % SCENES.length);
+  function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === 'ArrowLeft') goTo(index - 1);
+    if (event.key === 'ArrowRight') goTo(index + 1);
   }
 
   const active = SCENES[index]!;
 
   return (
     <div
-      className="rounded-brand-xl shadow-brand-soft relative mx-auto max-w-3xl overflow-hidden"
+      role="group"
+      aria-roledescription="carousel"
+      aria-label="Artwork scenes"
+      tabIndex={0}
+      className={cn(
+        SWIPE_SURFACE_CLASS,
+        'rounded-brand-xl shadow-brand-soft focus-visible:shadow-focus relative mx-auto max-w-3xl overflow-hidden focus-visible:outline-none md:cursor-grab',
+        isDragging && 'cursor-grabbing',
+      )}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
-      onFocus={() => setIsPaused(true)}
+      onFocus={(event) => {
+        // Pause for keyboard focus only; a mouse press also focuses the panel.
+        let isKeyboardFocus = true;
+        try {
+          isKeyboardFocus = event.currentTarget.matches(':focus-visible');
+        } catch {
+          // Older engines without :focus-visible: treat any focus as a pause.
+        }
+        if (isKeyboardFocus) setIsPaused(true);
+      }}
       onBlur={() => setIsPaused(false)}
+      onKeyDown={handleKeyDown}
+      {...handlers}
     >
+      {/* The drag offset lives on its own wrapper: the fade-up animation on
+          the scene writes a literal transform and would override it. */}
       <div
-        key={active.id}
-        className={`relative flex h-72 items-center justify-center sm:h-80 ${active.gradient} animate-brand-fade-up`}
+        className={cn(
+          !isDragging && 'transition-transform duration-300 ease-out',
+        )}
+        style={{ transform: `translateX(${dragX}px)` }}
       >
-        <div className="absolute inset-0" aria-hidden="true">
-          <Sparkle className="text-brand-gold animate-brand-twinkle absolute left-[12%] top-[18%] h-6 w-6" />
-          <TwinkleStar className="text-brand-paper animate-brand-float absolute right-[16%] top-[26%] h-5 w-5" />
-          <Flower className="text-brand-rose animate-brand-float-slow absolute bottom-[14%] left-[18%] h-8 w-8" />
-          <MedicalDoodle className="text-brand-plum absolute bottom-[20%] right-[14%] h-7 w-7" />
-          <Cloud className="text-brand-paper/70 absolute right-[8%] top-[10%] h-8 w-14" />
+        <div
+          key={active.id}
+          className={`relative flex h-72 items-center justify-center sm:h-80 ${active.gradient} animate-brand-fade-up`}
+        >
+          <div className="absolute inset-0" aria-hidden="true">
+            <Sparkle className="text-brand-gold animate-brand-twinkle absolute left-[12%] top-[18%] h-6 w-6" />
+            <TwinkleStar className="text-brand-paper animate-brand-float absolute right-[16%] top-[26%] h-5 w-5" />
+            <Flower className="text-brand-rose animate-brand-float-slow absolute bottom-[14%] left-[18%] h-8 w-8" />
+            <MedicalDoodle className="text-brand-plum absolute bottom-[20%] right-[14%] h-7 w-7" />
+            <Cloud className="text-brand-paper/70 absolute right-[8%] top-[10%] h-8 w-14" />
+          </div>
+          <p
+            aria-live="polite"
+            className="font-script text-brand-berry relative text-3xl sm:text-4xl"
+          >
+            {active.caption}
+          </p>
         </div>
-        <p className="font-script text-brand-berry relative text-3xl sm:text-4xl">
-          {active.caption}
-        </p>
       </div>
 
-      <button
-        type="button"
-        aria-label="Previous artwork"
-        onClick={() => goTo(index - 1)}
-        className="bg-brand-paper/90 text-brand-plum shadow-brand-tight hover:bg-brand-paper absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
-      >
-        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-      </button>
-      <button
-        type="button"
-        aria-label="Next artwork"
-        onClick={() => goTo(index + 1)}
-        className="bg-brand-paper/90 text-brand-plum shadow-brand-tight hover:bg-brand-paper absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full"
-      >
-        <ChevronRight className="h-4 w-4" aria-hidden="true" />
-      </button>
-
+      {/* Position hint — visual only; the scenes change by swiping. */}
       <div
-        className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
-        role="tablist"
-        aria-label="Artwork scenes"
+        className="pointer-events-none absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5"
+        aria-hidden="true"
       >
         {SCENES.map((scene, sceneIndex) => (
-          <button
+          <span
             key={scene.id}
-            type="button"
-            role="tab"
-            aria-selected={sceneIndex === index}
-            aria-label={`Show ${scene.caption} artwork`}
-            onClick={() => goTo(sceneIndex)}
+            data-active={sceneIndex === index}
             className={`h-2 rounded-full transition-all ${sceneIndex === index ? 'bg-brand-paper w-6' : 'bg-brand-paper/50 w-2'}`}
           />
         ))}

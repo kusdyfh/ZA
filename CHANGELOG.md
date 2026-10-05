@@ -8,6 +8,35 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.14 — Swipe Everywhere: No Carousel Buttons (2026-10-06)
+
+Character Showcase, Doll Dress-Up and Rotating Artwork no longer have
+arrow buttons; they move by dragging.
+
+- **`useSwipe`** (`components/brand/use-swipe.ts`): the pointer-drag logic
+  first written inside the hero, now shared. Mouse and touch; the content
+  follows the pointer, commits past 50px, springs back otherwise, leaves
+  vertical scrolling alone, and a drag that starts on a link does not
+  follow it. The hero uses it too (no behaviour change; its spec still
+  passes).
+- **Doll Dress-Up** and **Rotating Artwork** swipe the active slide and
+  wrap around; the old preview thumbnails and the dot "tabs" are now
+  visual only. Rotating Artwork keeps its 4.5s auto-rotation, which also
+  holds during a drag, restarts after a swipe, pauses on hover and for
+  keyboard focus (not for a mouse press), and stops under reduced motion.
+- **Character Showcase** is a native scrolling row, so touch already
+  swiped it; the mouse now gets click-and-drag (`useDragScroll`), with
+  snapping and smooth-scroll switched off mid-drag and back on at release
+  so it settles on a card. The wheel still scrolls it.
+- **Keyboard:** Dress-Up and Rotating Artwork are focusable groups that
+  take the left/right arrow keys and announce the current label, so they
+  stay usable without buttons. The hero is purely decorative and is not.
+- **Discoverability:** with the arrows gone, only the position dots and the
+  cards running past the edge hint that these move. Say so if a visible
+  "drag" cue is wanted.
+- `src/test-utils/pointer-event.ts` polyfills `PointerEvent` (jsdom has none)
+  for the component specs that import it.
+
 ### Epic 14.13 — Checkout: No Delivery Method Choice (2026-10-06)
 
 The "Delivery method" card on the checkout page is gone.
