@@ -1,15 +1,24 @@
 import { ChangeProductStatusUseCase } from './change-product-status.use-case';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import type { ProductVariantRepository } from '../../domain/repositories/product-variant.repository';
-import type { ProductMediaItem, ProductMediaRepository } from '../../domain/repositories/product-media.repository';
+import type {
+  ProductMediaItem,
+  ProductMediaRepository,
+} from '../../domain/repositories/product-media.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { PRODUCT_STATUS } from '../../domain/constants/product-status.constants';
 import { PRODUCT_MEDIA_TYPE } from '../../domain/constants/product-media-type.constants';
-import { ProductNotFoundError, ProductNotReadyForActiveError } from '../../domain/errors/catalog.errors';
+import {
+  ProductNotFoundError,
+  ProductNotReadyForActiveError,
+} from '../../domain/errors/catalog.errors';
 
 function buildProduct(overrides: Partial<ProductProps> = {}): Product {
   return Product.reconstitute({
@@ -46,6 +55,7 @@ const coverImage: ProductMediaItem = {
   altText: 'Cover',
   sortOrder: 0,
   isCover: true,
+  colorId: null,
 };
 
 describe('ChangeProductStatusUseCase', () => {
@@ -84,7 +94,12 @@ describe('ChangeProductStatusUseCase', () => {
     storeContext = {
       getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
     } as unknown as StoreContext;
-    useCase = new ChangeProductStatusUseCase(products, variants, media, storeContext);
+    useCase = new ChangeProductStatusUseCase(
+      products,
+      variants,
+      media,
+      storeContext,
+    );
   });
 
   it('throws ProductNotFoundError when the product does not exist', async () => {
@@ -100,7 +115,10 @@ describe('ChangeProductStatusUseCase', () => {
     variants.countByProduct.mockResolvedValue(1);
     media.listByProduct.mockResolvedValue([coverImage]);
 
-    const result = await useCase.execute({ productId: 'prod-1', status: PRODUCT_STATUS.ACTIVE });
+    const result = await useCase.execute({
+      productId: 'prod-1',
+      status: PRODUCT_STATUS.ACTIVE,
+    });
 
     expect(result.status).toBe(PRODUCT_STATUS.ACTIVE);
     expect(products.save).toHaveBeenCalledWith(product);
@@ -134,7 +152,10 @@ describe('ChangeProductStatusUseCase', () => {
     const product = buildProduct({ status: PRODUCT_STATUS.ACTIVE });
     products.findById.mockResolvedValue(product);
 
-    const result = await useCase.execute({ productId: 'prod-1', status: PRODUCT_STATUS.ARCHIVED });
+    const result = await useCase.execute({
+      productId: 'prod-1',
+      status: PRODUCT_STATUS.ARCHIVED,
+    });
 
     expect(result.status).toBe(PRODUCT_STATUS.ARCHIVED);
     expect(variants.countByProduct).not.toHaveBeenCalled();
@@ -145,7 +166,10 @@ describe('ChangeProductStatusUseCase', () => {
     const product = buildProduct({ status: PRODUCT_STATUS.ARCHIVED });
     products.findById.mockResolvedValue(product);
 
-    const result = await useCase.execute({ productId: 'prod-1', status: PRODUCT_STATUS.DRAFT });
+    const result = await useCase.execute({
+      productId: 'prod-1',
+      status: PRODUCT_STATUS.DRAFT,
+    });
 
     expect(result.status).toBe(PRODUCT_STATUS.DRAFT);
   });

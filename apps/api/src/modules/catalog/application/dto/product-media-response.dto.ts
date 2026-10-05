@@ -7,6 +7,7 @@ export class ProductMediaResponseDto {
   altText!: string | null;
   sortOrder!: number;
   isCover!: boolean;
+  colorId!: string | null;
 
   static fromItem(item: ProductMediaItem): ProductMediaResponseDto {
     const dto = new ProductMediaResponseDto();
@@ -16,6 +17,7 @@ export class ProductMediaResponseDto {
     dto.altText = item.altText;
     dto.sortOrder = item.sortOrder;
     dto.isCover = item.isCover;
+    dto.colorId = item.colorId;
     return dto;
   }
 }

@@ -43,6 +43,7 @@ export interface ProductMedia {
   altText: string | null;
   sortOrder: number;
   isCover: boolean;
+  colorId: string | null;
 }
 
 export interface ProductSpecification {

@@ -10,6 +10,8 @@ export interface ProductMediaItem {
   altText: string | null;
   sortOrder: number;
   isCover: boolean;
+  /** The color this image shows; null = shared by every color of the product. */
+  colorId: string | null;
 }
 
 export interface ProductMediaInput {
@@ -17,6 +19,7 @@ export interface ProductMediaInput {
   url: string;
   altText: string | null;
   isCover: boolean;
+  colorId: string | null;
 }
 
 /**
@@ -26,6 +29,9 @@ export interface ProductMediaInput {
  */
 export interface ProductMediaRepository {
   /** Fully replaces a product's media set + order in one call. */
-  replaceForProduct(productId: string, media: ProductMediaInput[]): Promise<void>;
+  replaceForProduct(
+    productId: string,
+    media: ProductMediaInput[],
+  ): Promise<void>;
   listByProduct(productId: string): Promise<ProductMediaItem[]>;
 }

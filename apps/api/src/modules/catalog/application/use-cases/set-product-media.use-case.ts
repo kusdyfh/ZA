@@ -5,9 +5,19 @@ import {
   type ProductMediaInput,
   type ProductMediaRepository,
 } from '../../domain/repositories/product-media.repository';
-import { PRODUCT_REPOSITORY, type ProductRepository } from '../../domain/repositories/product.repository';
+import {
+  PRODUCT_REPOSITORY,
+  type ProductRepository,
+} from '../../domain/repositories/product.repository';
+import {
+  COLOR_REPOSITORY,
+  type ColorRepository,
+} from '../../domain/repositories/color.repository';
 import { ProductPolicy } from '../../domain/policies/product-policy';
-import { ProductNotFoundError } from '../../domain/errors/catalog.errors';
+import {
+  ColorNotFoundError,
+  ProductNotFoundError,
+} from '../../domain/errors/catalog.errors';
 
 export interface SetProductMediaInput {
   productId: string;
@@ -20,12 +30,16 @@ export interface SetProductMediaInput {
  * whole set via ProductPolicy before writing anything: at most one
  * cover, cover must be an image, every image has alt text, and — if the
  * product is currently Active — the new set must still include a cover.
+ * An entry may name the `colorId` it shows (the storefront gallery filters
+ * on it); every referenced color must exist in the current store.
  */
 @Injectable()
 export class SetProductMediaUseCase {
   constructor(
-    @Inject(PRODUCT_MEDIA_REPOSITORY) private readonly media: ProductMediaRepository,
+    @Inject(PRODUCT_MEDIA_REPOSITORY)
+    private readonly media: ProductMediaRepository,
     @Inject(PRODUCT_REPOSITORY) private readonly products: ProductRepository,
+    @Inject(COLOR_REPOSITORY) private readonly colors: ColorRepository,
     private readonly storeContext: StoreContext,
   ) {}
 
@@ -38,6 +52,19 @@ export class SetProductMediaUseCase {
 
     ProductPolicy.validateMediaSet(input.media);
     ProductPolicy.assertActiveProductKeepsCoverImage(product, input.media);
+
+    const colorIds = [
+      ...new Set(
+        input.media
+          .map((item) => item.colorId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+    for (const colorId of colorIds) {
+      if (!(await this.colors.findById(storeId, colorId))) {
+        throw new ColorNotFoundError(colorId);
+      }
+    }
 
     await this.media.replaceForProduct(input.productId, input.media);
   }

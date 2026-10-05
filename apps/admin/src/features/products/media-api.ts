@@ -8,6 +8,7 @@ export interface ProductMedia {
   altText: string | null;
   sortOrder: number;
   isCover: boolean;
+  colorId: string | null;
 }
 
 export interface ProductMediaEntry {
@@ -15,6 +16,8 @@ export interface ProductMediaEntry {
   url: string;
   altText?: string;
   isCover: boolean;
+  /** The color this image shows; null when shared by every color. */
+  colorId: string | null;
 }
 
 const QUERY_KEY = 'product-media';
@@ -22,7 +25,10 @@ const QUERY_KEY = 'product-media';
 export function useProductMediaQuery(productId: string) {
   return useQuery({
     queryKey: [QUERY_KEY, productId],
-    queryFn: () => apiFetch<ProductMedia[]>(`/catalog/products/${productId}/media`, { auth: false }),
+    queryFn: () =>
+      apiFetch<ProductMedia[]>(`/catalog/products/${productId}/media`, {
+        auth: false,
+      }),
     enabled: Boolean(productId),
   });
 }
@@ -31,7 +37,11 @@ export function useSetProductMediaMutation(productId: string) {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (media: ProductMediaEntry[]) =>
-      apiFetch<void>(`/catalog/products/${productId}/media`, { method: 'PUT', body: { media } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: [QUERY_KEY, productId] }),
+      apiFetch<void>(`/catalog/products/${productId}/media`, {
+        method: 'PUT',
+        body: { media },
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({ queryKey: [QUERY_KEY, productId] }),
   });
 }

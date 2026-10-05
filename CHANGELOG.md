@@ -8,6 +8,38 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.8 — Per-Color Product Photos and a Better Gallery (2026-10-05)
+
+Picking a color on a product page now shows only that color's photos and
+sizes, and the gallery is easier to move through.
+
+- **Schema:** `ProductMedia.colorId` (nullable FK to `Color`, `ON DELETE
+  SET NULL`, indexed) via migration `20261005130000_product_media_color`.
+  Null means "shared by every color". **The migration must be applied
+  wherever the API is deployed** (`prisma migrate deploy`).
+- **API:** the media PUT accepts an optional `colorId` per entry and
+  rejects an unknown one with `ColorNotFoundError` before writing; the
+  public media/detail responses return it. Specs cover both paths.
+- **Storefront gallery:** shows the chosen color's photos plus shared
+  (untagged) ones; a color without any photos, or a product with no
+  tagged media, falls back to the full set (cover first, as before).
+  Previous/next arrows (wrap around), an "n / N" counter, swipe on touch,
+  arrow-key navigation, and a thumbnail strip that follows the active
+  image. Switching color resets to that color's first photo.
+- **Variant picker:** offers only the selected color's sizes (previously
+  other sizes were greyed out) and shows the color name next to the
+  swatches. Changing color keeps the size if that color has it, otherwise
+  selects its first size. The PDP owns the color state and shares it
+  with the gallery and the add-to-cart form.
+- **Admin media tab:** each media row has a Color select ("All colors
+  (shared)" by default) and saves round-trip `colorId`. Before this, a
+  save from an older admin build would drop the color links.
+- **Zayra Scrub data (SQL, local DB only):** the 16 photos were linked to
+  their colors. Black has no solo photos, so the two grey-and-black duo
+  photos are tagged Black. `baby-pink-3.jpg` shows a baby-pink and a
+  fuchsia scrub side by side (fuchsia is not one of the six colors); it
+  stays under Baby Pink.
+
 ### Epic 14.7 — Zayra Scrub: First Real Product (2026-10-05)
 
 The client supplied 16 product photos, six colors and Arabic marketing

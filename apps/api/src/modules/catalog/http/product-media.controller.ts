@@ -27,7 +27,11 @@ export class ProductMediaController {
   ): Promise<{ replaced: true }> {
     await this.setProductMedia.execute({
       productId,
-      media: dto.media.map((entry) => ({ ...entry, altText: entry.altText ?? null })),
+      media: dto.media.map((entry) => ({
+        ...entry,
+        altText: entry.altText ?? null,
+        colorId: entry.colorId ?? null,
+      })),
     });
     return { replaced: true };
   }
@@ -35,7 +39,9 @@ export class ProductMediaController {
   @Get()
   @Public()
   @ApiOkResponse({ type: ProductMediaResponseDto, isArray: true })
-  async list(@Param('productId') productId: string): Promise<ProductMediaResponseDto[]> {
+  async list(
+    @Param('productId') productId: string,
+  ): Promise<ProductMediaResponseDto[]> {
     const media = await this.listProductMedia.execute({ productId });
     return media.map((item) => ProductMediaResponseDto.fromItem(item));
   }

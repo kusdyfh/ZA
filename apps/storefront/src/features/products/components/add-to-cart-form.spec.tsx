@@ -53,8 +53,24 @@ const useAddCartItemMutationMock = useAddCartItemMutation as jest.Mock;
 const useToastMock = useToast as jest.Mock;
 
 const variants: ProductVariant[] = [
-  { id: 'variant-1', productId: 'product-1', sku: 'SKU-1-RED-M', barcode: null, colorId: 'color-1', sizeId: 'size-1', priceOverride: null },
-  { id: 'variant-2', productId: 'product-1', sku: 'SKU-1-BLUE-L', barcode: null, colorId: 'color-2', sizeId: 'size-2', priceOverride: null },
+  {
+    id: 'variant-1',
+    productId: 'product-1',
+    sku: 'SKU-1-RED-M',
+    barcode: null,
+    colorId: 'color-1',
+    sizeId: 'size-1',
+    priceOverride: null,
+  },
+  {
+    id: 'variant-2',
+    productId: 'product-1',
+    sku: 'SKU-1-BLUE-L',
+    barcode: null,
+    colorId: 'color-2',
+    sizeId: 'size-2',
+    priceOverride: null,
+  },
 ];
 
 describe('AddToCartForm', () => {
@@ -68,13 +84,18 @@ describe('AddToCartForm', () => {
     showToast.mockClear();
     useCartTokenMock.mockReturnValue('guest-token-123');
     useCartDrawerMock.mockReturnValue({ open });
-    useAddCartItemMutationMock.mockReturnValue({ mutateAsync, isPending: false });
+    useAddCartItemMutationMock.mockReturnValue({
+      mutateAsync,
+      isPending: false,
+    });
     useToastMock.mockReturnValue({ showToast });
   });
 
   it('shows an unavailable message when there are no variants', () => {
     render(<AddToCartForm variants={[]} />);
-    expect(screen.getByText("This product isn't available for purchase right now.")).toBeInTheDocument();
+    expect(
+      screen.getByText("This product isn't available for purchase right now."),
+    ).toBeInTheDocument();
   });
 
   it('pre-selects the first variant so add to cart starts enabled', () => {
@@ -87,8 +108,39 @@ describe('AddToCartForm', () => {
     render(<AddToCartForm variants={variants} />);
 
     await user.click(screen.getByText('Pick blue'));
+    await user.click(screen.getByText('Pick M'));
 
     expect(screen.getByRole('button', { name: 'Add to cart' })).toBeDisabled();
+  });
+
+  it("falls to the new color's own size when the old size is not offered in it", async () => {
+    mutateAsync.mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    render(<AddToCartForm variants={variants} />);
+
+    await user.click(screen.getByText('Pick blue'));
+    await user.click(screen.getByRole('button', { name: 'Add to cart' }));
+
+    expect(mutateAsync).toHaveBeenCalledWith({
+      variantId: 'variant-2',
+      quantity: 1,
+    });
+  });
+
+  it('reports the picked color to a parent that controls it', async () => {
+    const onSelectColor = jest.fn();
+    const user = userEvent.setup();
+    render(
+      <AddToCartForm
+        variants={variants}
+        selectedColorId="color-1"
+        onSelectColor={onSelectColor}
+      />,
+    );
+
+    await user.click(screen.getByText('Pick blue'));
+
+    expect(onSelectColor).toHaveBeenCalledWith('color-2');
   });
 
   it('adds the pre-selected variant and quantity to the cart, then opens the drawer', async () => {
@@ -98,8 +150,14 @@ describe('AddToCartForm', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add to cart' }));
 
-    expect(mutateAsync).toHaveBeenCalledWith({ variantId: 'variant-1', quantity: 1 });
-    expect(showToast).toHaveBeenCalledWith({ tone: 'success', title: 'Added to cart' });
+    expect(mutateAsync).toHaveBeenCalledWith({
+      variantId: 'variant-1',
+      quantity: 1,
+    });
+    expect(showToast).toHaveBeenCalledWith({
+      tone: 'success',
+      title: 'Added to cart',
+    });
     expect(open).toHaveBeenCalled();
   });
 
@@ -110,9 +168,14 @@ describe('AddToCartForm', () => {
 
     await user.click(screen.getByRole('button', { name: 'Add to cart' }));
 
-    expect(await screen.findByRole('button', { name: 'Add to cart' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: 'Add to cart' }),
+    ).toBeInTheDocument();
     expect(showToast).toHaveBeenCalledWith(
-      expect.objectContaining({ tone: 'danger', title: 'Could not add to cart' }),
+      expect.objectContaining({
+        tone: 'danger',
+        title: 'Could not add to cart',
+      }),
     );
     expect(open).not.toHaveBeenCalled();
   });

@@ -527,6 +527,7 @@ model Color {
   hexCode String
 
   variants ProductVariant[]
+  media    ProductMedia[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -613,11 +614,18 @@ model ProductMedia {
   altText   String?
   sortOrder Int              @default(0)
   isCover   Boolean          @default(false)
+  /// Optional: the color this image shows. Null = shared by every color
+  /// of the product. The storefront gallery filters on it when a color
+  /// is selected. `onDelete: SetNull` so deleting a color never deletes
+  /// its photos, they simply become shared.
+  color     Color?           @relation(fields: [colorId], references: [id], onDelete: SetNull)
+  colorId   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([productId])
+  @@index([colorId])
   @@map("product_media")
 }
 

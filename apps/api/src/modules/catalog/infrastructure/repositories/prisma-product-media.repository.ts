@@ -10,7 +10,10 @@ import type {
 export class PrismaProductMediaRepository implements ProductMediaRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async replaceForProduct(productId: string, media: ProductMediaInput[]): Promise<void> {
+  async replaceForProduct(
+    productId: string,
+    media: ProductMediaInput[],
+  ): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.productMedia.deleteMany({ where: { productId } }),
       this.prisma.productMedia.createMany({
@@ -20,6 +23,7 @@ export class PrismaProductMediaRepository implements ProductMediaRepository {
           url: item.url,
           altText: item.altText,
           isCover: item.isCover,
+          colorId: item.colorId,
           sortOrder: index,
         })),
       }),
@@ -39,6 +43,7 @@ export class PrismaProductMediaRepository implements ProductMediaRepository {
       altText: record.altText,
       sortOrder: record.sortOrder,
       isCover: record.isCover,
+      colorId: record.colorId,
     }));
   }
 }

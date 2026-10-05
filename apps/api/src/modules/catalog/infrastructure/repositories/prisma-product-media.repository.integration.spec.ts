@@ -10,7 +10,10 @@ describe('PrismaProductMediaRepository (integration)', () => {
 
   beforeAll(async () => {
     const store = await prisma.store.create({
-      data: { name: 'Integration Test Store', domain: `test-${randomUUID()}.local` },
+      data: {
+        name: 'Integration Test Store',
+        domain: `test-${randomUUID()}.local`,
+      },
     });
     storeId = store.id;
 
@@ -41,9 +44,27 @@ describe('PrismaProductMediaRepository (integration)', () => {
 
   it('replaces the media set and assigns sortOrder by array position', async () => {
     await repository.replaceForProduct(productId, [
-      { type: 'IMAGE', url: 'https://example.com/cover.jpg', altText: 'Cover', isCover: true },
-      { type: 'IMAGE', url: 'https://example.com/back.jpg', altText: 'Back', isCover: false },
-      { type: 'VIDEO', url: 'https://example.com/demo.mp4', altText: null, isCover: false },
+      {
+        type: 'IMAGE',
+        url: 'https://example.com/cover.jpg',
+        altText: 'Cover',
+        isCover: true,
+        colorId: null,
+      },
+      {
+        type: 'IMAGE',
+        url: 'https://example.com/back.jpg',
+        altText: 'Back',
+        isCover: false,
+        colorId: null,
+      },
+      {
+        type: 'VIDEO',
+        url: 'https://example.com/demo.mp4',
+        altText: null,
+        isCover: false,
+        colorId: null,
+      },
     ]);
 
     const items = await repository.listByProduct(productId);
@@ -59,7 +80,13 @@ describe('PrismaProductMediaRepository (integration)', () => {
 
   it('fully replaces the set on a second call (not additive)', async () => {
     await repository.replaceForProduct(productId, [
-      { type: 'IMAGE', url: 'https://example.com/only.jpg', altText: 'Only image', isCover: true },
+      {
+        type: 'IMAGE',
+        url: 'https://example.com/only.jpg',
+        altText: 'Only image',
+        isCover: true,
+        colorId: null,
+      },
     ]);
 
     const items = await repository.listByProduct(productId);

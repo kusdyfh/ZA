@@ -13,37 +13,82 @@ function describeError(error: unknown): string {
   return error instanceof ApiError ? error.message : 'Something went wrong.';
 }
 
-export function AddToCartForm({ variants }: { variants: ProductVariant[] }) {
+export interface AddToCartFormProps {
+  variants: ProductVariant[];
+  /** Controlled color, so the gallery can follow it. Uncontrolled when omitted. */
+  selectedColorId?: string | null;
+  onSelectColor?: (colorId: string) => void;
+}
+
+export function AddToCartForm({
+  variants,
+  selectedColorId: controlledColorId,
+  onSelectColor,
+}: AddToCartFormProps) {
   const cartToken = useCartToken();
   const { open } = useCartDrawer();
   const addMutation = useAddCartItemMutation(cartToken);
   const { showToast } = useToast();
 
-  const [selectedColorId, setSelectedColorId] = useState<string | null>(variants[0]?.colorId ?? null);
-  const [selectedSizeId, setSelectedSizeId] = useState<string | null>(variants[0]?.sizeId ?? null);
+  const [ownColorId, setOwnColorId] = useState<string | null>(
+    variants[0]?.colorId ?? null,
+  );
+  const selectedColorId =
+    controlledColorId !== undefined ? controlledColorId : ownColorId;
+  const [selectedSizeId, setSelectedSizeId] = useState<string | null>(
+    variants[0]?.sizeId ?? null,
+  );
   const [quantity, setQuantity] = useState(1);
+
+  function handleSelectColor(colorId: string) {
+    setOwnColorId(colorId);
+    onSelectColor?.(colorId);
+    // Keep the size when this color has it; otherwise fall to its first size.
+    const sizesForColor = variants
+      .filter((variant) => variant.colorId === colorId)
+      .map((variant) => variant.sizeId ?? null);
+    if (!sizesForColor.includes(selectedSizeId)) {
+      setSelectedSizeId(sizesForColor[0] ?? null);
+    }
+  }
 
   const selectedVariant = variants.find(
     (variant) =>
-      (variant.colorId ?? null) === selectedColorId && (variant.sizeId ?? null) === selectedSizeId,
+      (variant.colorId ?? null) === selectedColorId &&
+      (variant.sizeId ?? null) === selectedSizeId,
   );
 
   async function handleAddToCart() {
     if (!selectedVariant) {
-      showToast({ tone: 'danger', title: 'Choose an option', description: 'Select a color and size before adding to cart.' });
+      showToast({
+        tone: 'danger',
+        title: 'Choose an option',
+        description: 'Select a color and size before adding to cart.',
+      });
       return;
     }
     try {
-      await addMutation.mutateAsync({ variantId: selectedVariant.id, quantity });
+      await addMutation.mutateAsync({
+        variantId: selectedVariant.id,
+        quantity,
+      });
       showToast({ tone: 'success', title: 'Added to cart' });
       open();
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not add to cart', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not add to cart',
+        description: describeError(error),
+      });
     }
   }
 
   if (variants.length === 0) {
-    return <p className="text-sm text-neutral-500 dark:text-neutral-400">This product isn&apos;t available for purchase right now.</p>;
+    return (
+      <p className="text-sm text-neutral-500 dark:text-neutral-400">
+        This product isn&apos;t available for purchase right now.
+      </p>
+    );
   }
 
   return (
@@ -52,12 +97,17 @@ export function AddToCartForm({ variants }: { variants: ProductVariant[] }) {
         variants={variants}
         selectedColorId={selectedColorId}
         selectedSizeId={selectedSizeId}
-        onSelectColor={setSelectedColorId}
+        onSelectColor={handleSelectColor}
         onSelectSize={setSelectedSizeId}
       />
       <div className="flex items-center gap-4">
         <QuantityStepper value={quantity} onChange={setQuantity} />
-        <Button onClick={handleAddToCart} isLoading={addMutation.isPending} disabled={!selectedVariant} className="flex-1">
+        <Button
+          onClick={handleAddToCart}
+          isLoading={addMutation.isPending}
+          disabled={!selectedVariant}
+          className="flex-1"
+        >
           Add to cart
         </Button>
       </div>

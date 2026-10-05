@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Coffee, GraduationCap, Moon } from 'lucide-react';
 import { ErrorState, Skeleton } from '@za/ui';
 import { formatCurrency } from '@za/shared';
@@ -49,6 +50,7 @@ const PDP_LIFESTYLE_MOMENTS = [
  */
 export function ProductDetailContent({ slug }: { slug: string }) {
   const { data, isLoading, isError } = useProductDetailQuery(slug);
+  const [pickedColorId, setPickedColorId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -75,6 +77,7 @@ export function ProductDetailContent({ slug }: { slug: string }) {
   }
 
   const { product, variants, media } = data;
+  const selectedColorId = pickedColorId ?? variants[0]?.colorId ?? null;
   const hasDiscount =
     product.discountPrice !== null &&
     Number(product.discountPrice) < Number(product.price);
@@ -108,7 +111,11 @@ export function ProductDetailContent({ slug }: { slug: string }) {
           the variant picker and submit action together — untouched). */}
       <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
-          <ProductGallery media={media} productName={product.name} />
+          <ProductGallery
+            media={media}
+            productName={product.name}
+            colorId={selectedColorId}
+          />
 
           <div>
             <h1 className="font-display text-brand-ink text-3xl font-semibold dark:text-neutral-50">
@@ -147,7 +154,11 @@ export function ProductDetailContent({ slug }: { slug: string }) {
             )}
 
             <div className="mt-6">
-              <AddToCartForm variants={variants} />
+              <AddToCartForm
+                variants={variants}
+                selectedColorId={selectedColorId}
+                onSelectColor={setPickedColorId}
+              />
             </div>
           </div>
         </div>
