@@ -8,6 +8,36 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.7 — Zayra Scrub: First Real Product (2026-10-05)
+
+The client supplied 16 product photos, six colors and Arabic marketing
+copy for one product and asked for it to be added to the store.
+
+- **Created through the admin API, not the repo:** product `zayra-scrub`
+  (87,000 IQD, Scrubs, ZA Originals, new arrival), 6 colors x 5 sizes =
+  30 variants with 10 units of placeholder stock each, 16 gallery photos
+  (baby pink cover first), the 5 marketing bullets in `highlights`, the
+  full text in `description`. The product exists only in the database it
+  was created in; it is not part of `prisma/seed.ts`.
+- **Photos live in `apps/storefront/public/products/zayra-scrub/`** and
+  are stored as *relative* paths (`/products/zayra-scrub/x.jpg`), so they
+  work on any host that serves the storefront. `ProductMedia.url` is
+  validated as an absolute URL (`@IsUrl`), so these rows were written
+  with a direct SQL update; **re-saving the product's media from the
+  admin API/panel will be rejected** until it is migrated to absolute
+  URLs (CDN/Cloudinary) once hosting is decided. Product-card images use
+  `ogImageUrl`, which is also relative; social-share cards would resolve
+  it against `metadataBase` (unset), so set that before relying on them.
+- **`dir="auto"` on the product short description:** the Arabic copy was
+  laid out left-to-right and its sentence runs displayed shuffled.
+- Product pages deliberately render only `shortDescription` (earlier
+  decision); the long description and highlights are stored but not
+  shown. The gallery does not switch with the selected color (media has
+  no color link in the schema).
+- A Next dev server keeps API responses in an in-memory cache that
+  deleting `.next/cache/fetch-cache` does not clear; after changing
+  catalog data under a running dev server, restart it.
+
 ### Epic 14.6 — Netlify Build Fix: No More Silent Localhost Fallback (2026-10-04)
 
 Netlify's build compiled and type-checked, then failed in static

@@ -138,7 +138,10 @@ export function ProductDetailContent({ slug }: { slug: string }) {
             </div>
 
             {product.shortDescription && (
-              <p className="text-brand-mauve mt-4 dark:text-neutral-400">
+              <p
+                dir="auto"
+                className="text-brand-mauve mt-4 dark:text-neutral-400"
+              >
                 {product.shortDescription}
               </p>
             )}
