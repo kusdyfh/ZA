@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -28,10 +28,7 @@ import {
   useInitiateCardCheckoutMutation,
   usePlaceOrderMutation,
 } from '@/features/orders/api';
-import {
-  useShippingMethodsQuery,
-  useShippingRateQuoteQuery,
-} from '@/features/shipping/api';
+import { useAutoShippingMethod } from '@/features/shipping/api';
 
 const checkoutSchema = z.object({
   customerName: z.string().min(1, 'Full name is required'),
@@ -47,7 +44,13 @@ const checkoutSchema = z.object({
   shippingCity: z.string().min(1, 'City is required'),
   shippingGovernorate: z.string().min(1, 'Governorate is required'),
   shippingCountry: z.string().min(1, 'Country is required'),
-  shippingMethodId: z.string().min(1, 'Choose a delivery method'),
+  // Chosen automatically (see useAutoShippingMethod); there is no field for it.
+  shippingMethodId: z
+    .string()
+    .min(
+      1,
+      "We couldn't confirm delivery to this governorate. Check the name and try again.",
+    ),
   paymentMethod: z.enum(['COD', 'CARD']),
 });
 
@@ -65,7 +68,6 @@ export default function CheckoutPage() {
   const cartToken = useCartToken();
   const { data: cart, isLoading: isCartLoading } = useCartQuery(cartToken);
   const { data: addresses } = useAddressesQuery();
-  const { data: shippingMethods } = useShippingMethodsQuery();
   const placeOrderMutation = usePlaceOrderMutation();
   const initiateCardCheckoutMutation = useInitiateCardCheckoutMutation();
   const { showToast } = useToast();
@@ -90,25 +92,28 @@ export default function CheckoutPage() {
   });
 
   const shippingGovernorate = watch('shippingGovernorate');
-  const shippingMethodId = watch('shippingMethodId');
   const paymentMethod = watch('paymentMethod');
 
-  const quoteParams = useMemo(
-    () =>
-      cart && shippingGovernorate && shippingMethodId
-        ? {
-            governorate: shippingGovernorate,
-            methodId: shippingMethodId,
-            subtotal: cart.subtotal,
-          }
-        : null,
-    [cart, shippingGovernorate, shippingMethodId],
-  );
+  // Wait for a pause in typing before asking for quotes, one request per method.
+  const [typedGovernorate, setTypedGovernorate] = useState('');
+  useEffect(() => {
+    const timer = setTimeout(
+      () => setTypedGovernorate((shippingGovernorate ?? '').trim()),
+      400,
+    );
+    return () => clearTimeout(timer);
+  }, [shippingGovernorate]);
+
   const {
-    data: shippingQuote,
-    isFetching: isQuoteLoading,
-    isError: isQuoteError,
-  } = useShippingRateQuoteQuery(quoteParams);
+    method: shippingMethod,
+    quote: shippingQuote,
+    isChecking: isQuoteLoading,
+    isUnavailable: isDeliveryUnavailable,
+  } = useAutoShippingMethod(typedGovernorate, cart?.subtotal ?? null);
+
+  useEffect(() => {
+    setValue('shippingMethodId', shippingMethod?.id ?? '');
+  }, [shippingMethod?.id, setValue]);
 
   useEffect(() => {
     if (customer) {
@@ -281,46 +286,25 @@ export default function CheckoutPage() {
                   />
                   <Input
                     label="Governorate"
-                    errorText={errors.shippingGovernorate?.message}
+                    errorText={
+                      errors.shippingGovernorate?.message ??
+                      (isDeliveryUnavailable
+                        ? "We don't currently deliver to that governorate."
+                        : errors.shippingMethodId?.message)
+                    }
                     {...register('shippingGovernorate')}
                   />
                 </div>
-                <Input
-                  label="Country"
-                  errorText={errors.shippingCountry?.message}
-                  {...register('shippingCountry')}
-                />
-              </CardContent>
-            </Card>
-
-            <Card className={cardClassName}>
-              <CardHeader>
-                <CardTitle className={cardTitleClassName}>
-                  Delivery method
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-2">
-                <Select
-                  label="Delivery method"
-                  placeholder="Choose a delivery method"
-                  errorText={errors.shippingMethodId?.message}
-                  options={(shippingMethods ?? []).map((method) => ({
-                    value: method.id,
-                    label: `${method.name} (${method.minDays}-${method.maxDays} business days)`,
-                  }))}
-                  {...register('shippingMethodId')}
-                />
                 {isQuoteLoading && (
                   <p className="text-brand-mauve text-xs dark:text-neutral-400">
                     Calculating shipping fee…
                   </p>
                 )}
-                {isQuoteError && (
-                  <p className="text-danger-500 text-xs">
-                    We don&apos;t currently deliver to that governorate with
-                    this method — try a different one.
-                  </p>
-                )}
+                <Input
+                  label="Country"
+                  errorText={errors.shippingCountry?.message}
+                  {...register('shippingCountry')}
+                />
               </CardContent>
             </Card>
 

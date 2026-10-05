@@ -8,6 +8,33 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.13 — Checkout: No Delivery Method Choice (2026-10-06)
+
+The "Delivery method" card on the checkout page is gone.
+
+- **The order API is unchanged and still needs a method** (it prices and
+  ships against `shippingMethodId`). The page now picks one itself:
+  `useAutoShippingMethod` (`features/shipping/api.ts`) asks every active
+  method for a quote to the entered governorate, in the order the API
+  lists them, and uses the first that can deliver there. It never settles
+  on a later method while an earlier one is still undecided, and the
+  quotes are requested once typing pauses for 400ms (one request per
+  method).
+- **Shipping row and total** in the order summary come from that quote.
+  "Calculating shipping fee…" shows under the address while it runs; if no
+  method delivers to the governorate, the message appears under the
+  Governorate field and the order cannot be placed.
+- **Which method wins is the API's order, not a business rule.** With a
+  single real method this is simply that method. The local database also
+  holds seven rows from earlier E2E runs (four of them without any rate);
+  they are skipped here only because they cannot quote, and are worth
+  deleting in the admin before launch. If the store ever needs "cheapest"
+  or a flagged default method, that belongs in the API, not here.
+- `useShippingRateQuoteQuery` (single method) was replaced by the new hook;
+  nothing else used it. Specs: `features/shipping/api.spec.tsx`, and the
+  checkout page spec now covers the missing field, the fee row and the
+  blocked order.
+
 ### Epic 14.12 — The Real ZA STORE Logo (2026-10-06)
 
 The client supplied the actual logo (a geometric line monogram of Z and A
