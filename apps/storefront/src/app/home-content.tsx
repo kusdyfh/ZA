@@ -7,6 +7,7 @@ import {
   Building2,
   Coffee,
   GraduationCap,
+  Instagram,
   Moon,
   Stethoscope,
 } from 'lucide-react';
@@ -32,6 +33,7 @@ import {
   Sticker,
 } from '@/components/brand';
 import type { WallFrame } from '@/components/brand';
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '@/lib/social';
 
 // Deliberately lazy — a below-the-fold, non-critical trust section
 // (per this epic's "lazy-load non-critical sections" requirement). No
@@ -368,10 +370,17 @@ export function HomeContent() {
         <RotatingArtwork />
       </section>
 
-      {/* Instagram — a decorative placeholder grid; no live feed integration this epic. */}
+      {/* Instagram — the handle and button link to the store's real account; the tile grid is still decorative (no live feed integration). */}
       <section className="py-section-y mx-auto max-w-6xl px-4 sm:px-6">
         <div className="mb-8 text-center">
-          <p className="font-script text-brand-berry text-2xl">@zastore</p>
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-script text-brand-berry hover:text-brand-plum text-2xl underline-offset-4 hover:underline"
+          >
+            {INSTAGRAM_HANDLE}
+          </a>
           <Heading
             level={2}
             as="h2"
@@ -380,7 +389,10 @@ export function HomeContent() {
             Follow along
           </Heading>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div
+          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+          aria-hidden="true"
+        >
           {INSTAGRAM_TILE_TONES.map((tone, index) => (
             <div
               key={`${tone}-${index}`}
@@ -394,6 +406,21 @@ export function HomeContent() {
               />
             </div>
           ))}
+        </div>
+        <div className="mt-8 flex justify-center">
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-brand-pill bg-brand-plum text-brand-paper shadow-brand-tight hover:bg-brand-berry inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold"
+          >
+            <Instagram className="h-4 w-4" aria-hidden="true" />
+            Follow us on Instagram
+            <span className="sr-only">
+              {' '}
+              ({INSTAGRAM_HANDLE}, opens in a new tab)
+            </span>
+          </a>
         </div>
       </section>
 

@@ -1,6 +1,8 @@
 import Link from 'next/link';
+import { Instagram } from 'lucide-react';
 import { NAV_ITEMS } from '@/lib/nav-items';
 import { Logo } from '@/components/brand';
+import { INSTAGRAM_HANDLE, INSTAGRAM_URL } from '@/lib/social';
 
 const SUPPORT_LINKS = [
   { label: 'FAQ', href: '/faq' },
@@ -62,6 +64,16 @@ export function SiteFooter() {
             Premium medical scrubs, lab coats, and accessories — soft, modern,
             and made for long shifts.
           </p>
+          <a
+            href={INSTAGRAM_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`ZA Store on Instagram, ${INSTAGRAM_HANDLE} (opens in a new tab)`}
+            className="text-brand-mauve hover:text-brand-plum mt-4 inline-flex items-center gap-2 text-sm"
+          >
+            <Instagram className="h-4 w-4" aria-hidden="true" />
+            {INSTAGRAM_HANDLE}
+          </a>
         </div>
         <FooterColumn
           title="Shop"

@@ -8,6 +8,22 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.16 — Instagram Account Linked (2026-10-06)
+
+The store's Instagram account is `@za_store0`
+(`https://www.instagram.com/za_store0`).
+
+- **`lib/social.ts`** holds the handle and URL. The share link the client
+  sent carried a `stkn` tracking token; it is left off.
+- **Homepage "Follow along":** the placeholder handle `@zastore` is now
+  the real one and links out, and a "Follow us on Instagram" button sits
+  under the tiles. The tiles are still decorative (no live feed) and are
+  now hidden from assistive tech.
+- **Footer:** an Instagram link under the brand blurb.
+- Links open in a new tab with `rel="noopener noreferrer"`.
+- Not done: the Instagram link is not in the contact page, the structured
+  data (`sameAs`), or the share-card metadata.
+
 ### Epic 14.15 — Doll Dress-Up Auto-Advance (2026-10-06)
 
 Doll Dress-Up now moves to the next look by itself every 3 seconds (and
