@@ -22,6 +22,7 @@ import type { Product } from '@/features/products/types';
 import {
   ArtStoryWall,
   BrandHero,
+  CalligraphyCard,
   CharacterCarousel,
   DressShowcase,
   LifestyleSection,
@@ -235,6 +236,16 @@ export function HomeContent() {
         ctaLabel="Shop now"
         ctaHref="/shop"
         product={featured.data?.[0]}
+      />
+
+      {/* Brand statement — the hand-lettered tagline, right after the hero
+          (which hands off to cream via its wave) so it is the first thing
+          read once the hero is scrolled past. */}
+      <CalligraphyCard
+        src="/brand/calligraphy-tagline.png"
+        text="يليق بكِ الطب، فجمالكِ وحده يُداوي"
+        eyebrow="In her own words"
+        crop={{ x: 290, y: 190, width: 830, height: 235 }}
       />
 
       {/* Character Showcase */}

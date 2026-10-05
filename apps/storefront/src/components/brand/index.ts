@@ -2,6 +2,7 @@ export { ArchPlaque } from './arch-plaque';
 export { ArtStoryWall } from './art-story-wall';
 export type { WallFrame, StoryFrame, QuoteFrame } from './art-story-wall';
 export { BrandHero } from './brand-hero';
+export { CalligraphyCard } from './calligraphy-card';
 export { EditorialHeader } from './editorial-header';
 export { CharacterCard } from './character-card';
 export type { CharacterCardProps } from './character-card';

@@ -8,6 +8,25 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.9 — Calligraphy Tagline Card on the Homepage (2026-10-05)
+
+The client supplied a hand-lettered Arabic tagline (يليق بكِ الطب، فجمالكِ
+وحده يُداوي) as a JPG on a grey gradient and asked for it to be placed in
+the site as a card that matches the brand.
+
+- **Artwork:** background removed with Canva (`remove-background`), then
+  exported at full size as a transparent PNG through a scratch Canva design
+  ("Blank image container"), saved as
+  `apps/storefront/public/brand/calligraphy-tagline.png` (1290x555, RGBA).
+  The Canva design is left in the account and can be deleted.
+- **`CalligraphyCard`** (`components/brand/calligraphy-card.tsx`): paper
+  card with a dashed inner frame, a blush wash, corner sparkles and a
+  doodle underline, matching the hero/arch-plaque family. The artwork is
+  trimmed to the lettering with a CSS `crop` (the PNG keeps its margins),
+  and the Arabic wording is the image `alt`.
+- **Placement:** homepage, directly after the hero (which hands off to
+  cream through its wave), above Character Showcase.
+
 ### Epic 14.8 — Per-Color Product Photos and a Better Gallery (2026-10-05)
 
 Picking a color on a product page now shows only that color's photos and
