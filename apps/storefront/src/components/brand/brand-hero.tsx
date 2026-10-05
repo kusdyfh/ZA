@@ -1,9 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import { cn } from '@za/shared';
 import type { Product } from '@/features/products/types';
 import { Logo } from './logo';
 import {
@@ -49,6 +51,16 @@ const HERO_CHARACTERS = [
   },
 ] as const;
 
+/** How long each look stays before the next one slides in. */
+const AUTOPLAY_INTERVAL_MS = 3000;
+/** Horizontal travel (px) before a press becomes a drag rather than a tap. */
+const DRAG_START_PX = 8;
+/** Drag distance (px) that commits to the next/previous look. */
+const SWIPE_COMMIT_PX = 50;
+/** The character follows the pointer at this fraction, up to MAX_DRAG_PX. */
+const DRAG_RESISTANCE = 0.6;
+const MAX_DRAG_PX = 160;
+
 /**
  * The homepage's first viewport as one illustrated "ZA Pink Cartoon World"
  * scene: the character stands grounded in a full-bleed environment (no
@@ -83,7 +95,14 @@ export function BrandHero({
   product,
 }: BrandHeroProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const active = HERO_CHARACTERS[activeIndex]!;
+
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+  const suppressNextClick = useRef(false);
 
   function goTo(index: number) {
     setActiveIndex(
@@ -92,8 +111,92 @@ export function BrandHero({
     );
   }
 
+  useEffect(() => {
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(query.matches);
+    const onChange = (event: MediaQueryListEvent) =>
+      setPrefersReducedMotion(event.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+
+  // Auto-advance. The interval is rebuilt whenever the look changes, so a
+  // manual swipe restarts the 3s countdown instead of firing right after it.
+  // It holds still while a drag is in progress, in a background tab, and for
+  // visitors who asked for reduced motion (ADR 0029 §10).
+  useEffect(() => {
+    if (prefersReducedMotion || isDragging) return;
+    const id = window.setInterval(() => {
+      if (!document.hidden) {
+        setActiveIndex((current) => (current + 1) % HERO_CHARACTERS.length);
+      }
+    }, AUTOPLAY_INTERVAL_MS);
+    return () => window.clearInterval(id);
+  }, [activeIndex, isDragging, prefersReducedMotion]);
+
+  function endDrag(deltaX: number) {
+    if (isDraggingRef.current) {
+      if (Math.abs(deltaX) >= SWIPE_COMMIT_PX) {
+        goTo(activeIndex + (deltaX < 0 ? 1 : -1));
+      }
+      // A completed drag must not also activate a link under the pointer.
+      suppressNextClick.current = true;
+    }
+    pointerStart.current = null;
+    isDraggingRef.current = false;
+    setIsDragging(false);
+    setDragX(0);
+  }
+
+  function handlePointerDown(event: ReactPointerEvent<HTMLElement>) {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    suppressNextClick.current = false;
+    pointerStart.current = { x: event.clientX, y: event.clientY };
+  }
+
+  function handlePointerMove(event: ReactPointerEvent<HTMLElement>) {
+    const start = pointerStart.current;
+    if (!start) return;
+    const deltaX = event.clientX - start.x;
+    if (!isDraggingRef.current) {
+      const isHorizontal =
+        Math.abs(deltaX) >= DRAG_START_PX &&
+        Math.abs(deltaX) > Math.abs(event.clientY - start.y);
+      if (!isHorizontal) return;
+      isDraggingRef.current = true;
+      setIsDragging(true);
+      try {
+        event.currentTarget.setPointerCapture(event.pointerId);
+      } catch {
+        // Capture is only a nicety (keeps the drag alive off-element).
+      }
+    }
+    setDragX(
+      Math.max(-MAX_DRAG_PX, Math.min(MAX_DRAG_PX, deltaX * DRAG_RESISTANCE)),
+    );
+  }
+
+  function handlePointerUp(event: ReactPointerEvent<HTMLElement>) {
+    const start = pointerStart.current;
+    if (!start) return;
+    endDrag(event.clientX - start.x);
+  }
+
   return (
-    <section className="brand-pattern-low relative isolate min-h-[80dvh] overflow-hidden sm:min-h-[84vh] lg:max-h-[900px] lg:min-h-[90vh]">
+    <section
+      className="brand-pattern-low relative isolate min-h-[80dvh] touch-pan-y select-none overflow-hidden sm:min-h-[84vh] lg:max-h-[900px] lg:min-h-[90vh]"
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => endDrag(0)}
+      onClickCapture={(event) => {
+        if (suppressNextClick.current) {
+          suppressNextClick.current = false;
+          event.preventDefault();
+          event.stopPropagation();
+        }
+      }}
+    >
       {/* `.brand-pattern-low` (globals.css, ADR 0029 §14) — the site's own
           repeating ZA-monogram/sparkle/heart/ribbon tile at 4.5% opacity on
           brand-cream, defined for exactly this ("site section backgrounds")
@@ -193,40 +296,50 @@ export function BrandHero({
           thumbnail. `key={active.id}` retriggers the fade-up entrance on
           every slide change, matching `DressShowcase`'s carousel pattern. */}
       <div className="absolute bottom-0 left-1/2 z-10 h-[300px] w-[199px] -translate-x-1/2 sm:h-[380px] sm:w-[253px] lg:left-[54%] lg:h-[560px] lg:w-[372px]">
+        {/* The drag offset lives on its own wrapper: the fade-up animation
+            below writes a literal transform and would override it. */}
         <div
-          key={active.id}
-          className="animate-brand-fade-up relative h-full w-full [animation-delay:120ms]"
+          className={cn(
+            'h-full w-full',
+            !isDragging && 'transition-transform duration-300 ease-out',
+          )}
+          style={{ transform: `translateX(${dragX}px)` }}
         >
-          <Image
-            src={active.src}
-            alt=""
-            fill
-            sizes="(min-width: 1024px) 372px, (min-width: 640px) 253px, 199px"
-            className="animate-brand-float-slow object-contain object-bottom drop-shadow-[0_18px_28px_rgba(112,64,96,0.22)]"
-            priority
-          />
+          <div
+            key={active.id}
+            className="animate-brand-fade-up relative h-full w-full [animation-delay:120ms]"
+          >
+            <Image
+              src={active.src}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 372px, (min-width: 640px) 253px, 199px"
+              draggable={false}
+              className="animate-brand-float-slow object-contain object-bottom drop-shadow-[0_18px_28px_rgba(112,64,96,0.22)]"
+              priority
+            />
+          </div>
         </div>
 
-        {/* Carousel controls — same circular-arrow pattern as `DressShowcase`
-            (bg-brand-paper / text-brand-plum / shadow-brand-tight), placed
-            near her shoulders (top-[18%]) so they clear the product tag
-            (top-[46%]) and the CTA (bottom) rather than colliding with either. */}
-        <button
-          type="button"
-          aria-label={`Previous look: ${HERO_CHARACTERS[(activeIndex - 1 + HERO_CHARACTERS.length) % HERO_CHARACTERS.length]!.label}`}
-          onClick={() => goTo(activeIndex - 1)}
-          className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush absolute -left-9 top-[18%] z-20 flex h-8 w-8 items-center justify-center rounded-full sm:-left-11 sm:h-9 sm:w-9"
+        {/* Position hint — purely visual; the looks change by swiping or on
+            their own, so these are not controls. */}
+        <div
+          className="pointer-events-none absolute -top-5 left-1/2 flex -translate-x-1/2 gap-1.5"
+          aria-hidden="true"
         >
-          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          aria-label={`Next look: ${HERO_CHARACTERS[(activeIndex + 1) % HERO_CHARACTERS.length]!.label}`}
-          onClick={() => goTo(activeIndex + 1)}
-          className="bg-brand-paper text-brand-plum shadow-brand-tight hover:bg-brand-blush absolute -right-9 top-[18%] z-20 flex h-8 w-8 items-center justify-center rounded-full sm:-right-11 sm:h-9 sm:w-9"
-        >
-          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden="true" />
-        </button>
+          {HERO_CHARACTERS.map((character, index) => (
+            <span
+              key={character.id}
+              data-active={index === activeIndex}
+              className={cn(
+                'h-1.5 rounded-full transition-all duration-300',
+                index === activeIndex
+                  ? 'bg-brand-plum w-5'
+                  : 'bg-brand-petal-300 w-1.5',
+              )}
+            />
+          ))}
+        </div>
 
         {product?.ogImageUrl && (
           <div className="absolute left-[-18%] top-[46%] w-16 -rotate-[10deg] sm:w-20 lg:w-28">

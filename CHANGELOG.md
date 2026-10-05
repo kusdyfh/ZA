@@ -8,6 +8,27 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.11 — Hero Looks: Swipe and Auto-Advance (2026-10-05)
+
+The hero's three looks are no longer changed with arrow buttons.
+
+- **Swipe/drag:** a horizontal drag anywhere on the hero (mouse or touch)
+  moves the character with the pointer and commits to the next/previous
+  look past 50px, wrapping around; shorter drags spring back. Vertical
+  scrolling is untouched (`touch-action: pan-y`), and a drag that starts
+  on the Shop-now link does not also follow it.
+- **Auto-advance every 3 seconds.** The countdown restarts after each
+  swipe, and holds still during a drag, in a background tab, and for
+  visitors with `prefers-reduced-motion` (ADR 0029 §10) — those visitors
+  can still swipe.
+- **Arrow buttons removed.** Three small dots above her head show which
+  look is showing; they are decorative, not controls. Because the looks
+  are decorative images (empty alt text) and the only way to change them
+  is now a pointer gesture, keyboard-only users cannot switch looks; the
+  rotation continues on its own.
+- Spec: `brand-hero.spec.tsx` (autoplay, wrap-around, reduced motion,
+  swipe both ways, short drag, countdown restart, link suppression).
+
 ### Epic 14.10 — Header: Light-Only, Three Controls (2026-10-05)
 
 Header/navigation only; the hero, artwork, typography and the rest of the
