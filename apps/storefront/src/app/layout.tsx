@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Caveat, Fraunces, Nunito_Sans } from 'next/font/google';
 import './globals.css';
-import { ThemeInitScript } from '@za/ui';
 import { Providers } from '@/lib/providers';
 import { SiteHeader } from '@/components/site-header';
 import { SiteFooter } from '@/components/site-footer';
@@ -52,11 +51,10 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${fraunces.variable} ${nunitoSans.variable} ${caveat.variable}`}
-      suppressHydrationWarning
+      // The storefront is light-only: the ZA illustrated world has no dark
+      // palette, so the theme is fixed rather than read from the OS or storage.
+      data-theme="light"
     >
-      <head>
-        <ThemeInitScript />
-      </head>
       <body className="flex min-h-screen flex-col font-sans antialiased">
         <Providers>
           <SiteHeader />

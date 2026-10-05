@@ -1,10 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Drawer } from '@za/ui';
+import { cn } from '@za/shared';
 import { NAV_ITEMS } from '@/lib/nav-items';
 import { SearchBar } from './search-bar';
 
+/** The site menu — opened from the header's left-hand menu button on every screen size. */
 export function MobileNav({
   open,
   onClose,
@@ -12,31 +15,38 @@ export function MobileNav({
   open: boolean;
   onClose: () => void;
 }) {
+  const pathname = usePathname();
+
   return (
-    // Matches SiteHeader's theme-aware brand skin (ADR 0029 §11) — the
-    // header itself was already brand-tokened but this drawer's content
-    // was left on the shared preset's plain neutral scale.
     <Drawer
       open={open}
       onClose={onClose}
       title="Menu"
-      side="end"
-      className="bg-brand-cream dark:bg-neutral-900"
-      titleClassName="text-brand-ink dark:text-neutral-50"
+      side="start"
+      className="bg-brand-cream"
+      titleClassName="text-brand-ink"
     >
       <div className="flex flex-col gap-6">
         <SearchBar onSubmitted={onClose} />
-        <nav className="flex flex-col gap-1">
-          {NAV_ITEMS.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={onClose}
-              className="rounded-brand-md text-brand-ink hover:bg-brand-blush px-3 py-2 text-base font-medium dark:text-neutral-100 dark:hover:bg-neutral-800"
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav aria-label="Primary" className="flex flex-col gap-1">
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={onClose}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'rounded-brand-md text-brand-ink hover:bg-brand-blush px-3 py-2 text-base font-medium',
+                  isActive && 'bg-brand-blush text-brand-plum',
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </div>
     </Drawer>

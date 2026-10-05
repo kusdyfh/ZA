@@ -20,7 +20,8 @@ export interface DrawerProps {
   title: string;
   children?: ReactNode;
   footer?: ReactNode;
-  side?: 'end' | 'bottom';
+  /** `start` slides in from the leading edge (left in LTR) — for a menu opened from a left-hand trigger. */
+  side?: 'start' | 'end' | 'bottom';
   /** Override the panel's container classes (merged with the default). */
   className?: string;
   /** Override the header title's classes (merged with the default). */
@@ -80,6 +81,7 @@ export function Drawer({
         tabIndex={-1}
         className={cn(
           'relative z-10 flex flex-col bg-white shadow-lg outline-none dark:bg-neutral-900',
+          side === 'start' && 'me-auto h-full w-full max-w-sm',
           side === 'end' && 'ms-auto h-full w-full max-w-md',
           side === 'bottom' && 'mt-auto max-h-[85vh] w-full rounded-t-lg',
           className,

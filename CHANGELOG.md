@@ -8,6 +8,38 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.10 — Header: Light-Only, Three Controls (2026-10-05)
+
+Header/navigation only; the hero, artwork, typography and the rest of the
+homepage are untouched.
+
+- **No more black bar.** The black bar the client saw was the dark theme
+  (picked up from the OS or the stored toggle). The header now uses the
+  hero's own `brand-pattern-low` cream surface with a dashed petal
+  hairline, so it reads as the top edge of the illustrated page.
+- **Dark mode removed from the storefront.** The toggle is gone from the
+  header and the root layout no longer runs `ThemeInitScript`; `<html>`
+  is fixed to `data-theme="light"`, so a stored `za-theme` or an OS dark
+  preference has no effect. The inert `dark:` utility classes elsewhere
+  in the storefront were left alone (they cannot apply). `ThemeToggle`
+  and `ThemeInitScript` remain in `@za/ui` because the admin app uses
+  them.
+- **Wishlist button removed from the header** and its component
+  (`wishlist-icon-button.tsx`) deleted. The wishlist itself is unchanged
+  and still reachable from the account page, the footer and the product
+  cards' heart button.
+- **Three controls:** menu (left), the existing `Logo` wordmark (centre,
+  `fixed-light`), and account + bag (right) at every screen size. The
+  inline nav links and the header search field were folded into the menu,
+  which already carried search and the same links. Cart count shows only
+  when the bag is not empty.
+- **Menu:** a lighter three-stroke glyph (`menu-icon.tsx`); the drawer now
+  opens from the left via a new `side="start"` option on `Drawer` and
+  marks the current page.
+- **Not done:** the logo is still the Fraunces-type wordmark from
+  ADR 0029 (there is no logo image asset in the repo); it was reused, not
+  redrawn.
+
 ### Epic 14.9 — Calligraphy Tagline Card on the Homepage (2026-10-05)
 
 The client supplied a hand-lettered Arabic tagline (يليق بكِ الطب، فجمالكِ
