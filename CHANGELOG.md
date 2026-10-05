@@ -8,6 +8,29 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.15 — Doll Dress-Up Auto-Advance (2026-10-06)
+
+Doll Dress-Up now moves to the next look by itself every 3 seconds (and
+still swipes/drags and takes the arrow keys).
+
+- **Holds still** during a drag, while the pointer is over the **product
+  grid** (the grid changes with the look, so a card would otherwise be
+  swapped out from under a click), while the carousel has **keyboard
+  focus**, in a background tab, with a single look, and for visitors with
+  `prefers-reduced-motion`. A swipe restarts the countdown.
+  The pointer over the portrait row itself does not pause it.
+- **Heads-up:** on desktop, a mouse resting over the product cards stops
+  the rotation until it moves away; remove `isHoveringProducts` in
+  `dress-showcase.tsx` if that is not wanted.
+- **`useAutoplay`** (`components/brand/use-autoplay.ts`) is the shared
+  interval/visibility/reduced-motion logic, now also used by the hero and
+  Rotating Artwork (no behaviour change; `hasKeyboardFocus` replaces
+  Rotating Artwork's inline focus-visible check). It tolerates a missing
+  `matchMedia`.
+- Dress-Up spec covers the 3s cadence and wrap-around, reduced motion, a
+  single look, the swipe restart, the grid hover hold and the keyboard
+  focus hold.
+
 ### Epic 14.14 — Swipe Everywhere: No Carousel Buttons (2026-10-06)
 
 Character Showcase, Doll Dress-Up and Rotating Artwork no longer have

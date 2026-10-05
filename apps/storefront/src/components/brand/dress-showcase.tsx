@@ -8,6 +8,7 @@ import { ProductCard } from '@/features/products/components/product-card';
 import { PortraitBlob } from './portrait-blob';
 import { Sparkle } from './decorative';
 import { SWIPE_SURFACE_CLASS, useSwipe } from './use-swipe';
+import { hasKeyboardFocus, useAutoplay } from './use-autoplay';
 
 export interface DressShowcaseSlide {
   id: string;
@@ -16,6 +17,9 @@ export interface DressShowcaseSlide {
   tone?: 'rose' | 'plum' | 'gold' | 'lavender';
   products: Product[];
 }
+
+/** How long each look stays before the next one comes in. */
+const AUTOPLAY_INTERVAL_MS = 3000;
 
 export interface DressShowcaseProps {
   slides: DressShowcaseSlide[];
@@ -27,12 +31,17 @@ export interface DressShowcaseProps {
  * dress-up tool screenshot: an active slide at full size with dimmed
  * neighbor previews on either side. The looks change by swiping/dragging
  * the portrait row (mouse or touch) or with the left/right arrow keys; there
- * are no buttons. No interactive customization (per the brief) — each
+ * are no buttons. The looks also advance on their own every 3 seconds, holding
+ * still during a drag, while the pointer is over the product grid (so a card
+ * is not swapped out from under a click), while the carousel has keyboard
+ * focus, and for visitors who prefer reduced motion. No interactive customization (per the brief) — each
  * slide's linked products are real, already-loaded `Product`s passed in as
  * props, rendered with the existing `ProductCard`.
  */
 export function DressShowcase({ slides }: DressShowcaseProps) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [isHoveringProducts, setIsHoveringProducts] = useState(false);
+  const [hasFocus, setHasFocus] = useState(false);
 
   function goTo(index: number) {
     setActiveIndex(((index % slides.length) + slides.length) % slides.length);
@@ -41,6 +50,19 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
   const { dragX, isDragging, handlers } = useSwipe((direction) =>
     goTo(activeIndex + direction),
   );
+
+  // Restarts after every change of look, so a swipe is followed by a full interval.
+  useAutoplay({
+    onAdvance: () => setActiveIndex((current) => (current + 1) % slides.length),
+    intervalMs: AUTOPLAY_INTERVAL_MS,
+    paused:
+      slides.length < 2 ||
+      isDragging ||
+      // The grid unmounts on a slide with no products, taking its mouseleave with it.
+      (isHoveringProducts && (slides[activeIndex]?.products.length ?? 0) > 0) ||
+      hasFocus,
+    resetKey: activeIndex,
+  });
 
   if (slides.length === 0) return null;
 
@@ -62,6 +84,11 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
         aria-label="Looks"
         tabIndex={0}
         onKeyDown={handleKeyDown}
+        onFocus={(event) => {
+          // Keyboard focus only; a mouse press also focuses the group.
+          if (hasKeyboardFocus(event.currentTarget)) setHasFocus(true);
+        }}
+        onBlur={() => setHasFocus(false)}
         {...handlers}
         className={cn(
           SWIPE_SURFACE_CLASS,
@@ -147,7 +174,11 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
       </div>
 
       {active.products.length > 0 && (
-        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div
+          className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4"
+          onMouseEnter={() => setIsHoveringProducts(true)}
+          onMouseLeave={() => setIsHoveringProducts(false)}
+        >
           {active.products.map((product) => (
             <ProductCard
               key={product.id}

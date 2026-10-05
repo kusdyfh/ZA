@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@za/shared';
 import { SWIPE_SURFACE_CLASS, useSwipe } from './use-swipe';
+import { useAutoplay } from './use-autoplay';
 import type { Product } from '@/features/products/types';
 import { Logo } from './logo';
 import {
@@ -87,7 +88,6 @@ export function BrandHero({
   product,
 }: BrandHeroProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const active = HERO_CHARACTERS[activeIndex]!;
 
   function goTo(index: number) {
@@ -103,28 +103,15 @@ export function BrandHero({
     handlers: swipeHandlers,
   } = useSwipe((direction) => goTo(activeIndex + direction));
 
-  useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(query.matches);
-    const onChange = (event: MediaQueryListEvent) =>
-      setPrefersReducedMotion(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
-
-  // Auto-advance. The interval is rebuilt whenever the look changes, so a
-  // manual swipe restarts the 3s countdown instead of firing right after it.
-  // It holds still while a drag is in progress, in a background tab, and for
-  // visitors who asked for reduced motion (ADR 0029 §10).
-  useEffect(() => {
-    if (prefersReducedMotion || isDragging) return;
-    const id = window.setInterval(() => {
-      if (!document.hidden) {
-        setActiveIndex((current) => (current + 1) % HERO_CHARACTERS.length);
-      }
-    }, AUTOPLAY_INTERVAL_MS);
-    return () => window.clearInterval(id);
-  }, [activeIndex, isDragging, prefersReducedMotion]);
+  // The countdown restarts after each change of look, so a manual swipe is
+  // followed by a full interval; it holds still during a drag.
+  useAutoplay({
+    onAdvance: () =>
+      setActiveIndex((current) => (current + 1) % HERO_CHARACTERS.length),
+    intervalMs: AUTOPLAY_INTERVAL_MS,
+    paused: isDragging,
+    resetKey: activeIndex,
+  });
 
   return (
     <section

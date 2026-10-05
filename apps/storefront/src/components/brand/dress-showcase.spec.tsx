@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@/test-utils/pointer-event';
 import userEvent from '@testing-library/user-event';
 import { GraduationCap, Moon, Stethoscope } from 'lucide-react';
@@ -134,7 +134,7 @@ describe('DressShowcase', () => {
     const user = userEvent.setup();
     render(<DressShowcase slides={slides} />);
 
-    screen.getByRole('group', { name: 'Looks' }).focus();
+    act(() => screen.getByRole('group', { name: 'Looks' }).focus());
     await user.keyboard('{ArrowRight}');
     expect(screen.getByText('Doctor')).toBeInTheDocument();
 
@@ -149,5 +149,120 @@ describe('DressShowcase', () => {
 
     expect(screen.getByText('Night Shift')).toBeInTheDocument();
     expect(screen.queryByRole('link')).not.toBeInTheDocument();
+  });
+});
+
+describe('DressShowcase auto-advance', () => {
+  function mockReducedMotion(matches: boolean) {
+    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+      matches,
+      media: query,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    }));
+  }
+
+  function advance(ms: number) {
+    act(() => {
+      jest.advanceTimersByTime(ms);
+    });
+  }
+
+  function swipe(target: HTMLElement, fromX: number, toX: number) {
+    fireEvent.pointerDown(target, { clientX: fromX, clientY: 100 });
+    fireEvent.pointerMove(target, { clientX: (fromX + toX) / 2, clientY: 100 });
+    fireEvent.pointerMove(target, { clientX: toX, clientY: 100 });
+    fireEvent.pointerUp(target, { clientX: toX, clientY: 100 });
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    mockReducedMotion(false);
+    useCustomerAuthMock.mockReturnValue({ isAuthenticated: false });
+    useWishlistQueryMock.mockReturnValue({ data: undefined });
+    useAddWishlistItemMutationMock.mockReturnValue({ mutate: jest.fn() });
+    useRemoveWishlistItemMutationMock.mockReturnValue({ mutate: jest.fn() });
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('moves to the next look every 3 seconds and wraps around', () => {
+    render(<DressShowcase slides={slides} />);
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+
+    advance(3000);
+    expect(screen.getByText('Doctor')).toBeInTheDocument();
+    advance(3000);
+    expect(screen.getByText('Night Shift')).toBeInTheDocument();
+    advance(3000);
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+  });
+
+  it('does not advance after only 2.9 seconds', () => {
+    render(<DressShowcase slides={slides} />);
+
+    advance(2900);
+
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+  });
+
+  it('does not auto-advance for visitors who prefer reduced motion', () => {
+    mockReducedMotion(true);
+    render(<DressShowcase slides={slides} />);
+
+    advance(9000);
+
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+  });
+
+  it('does not move when there is only one look', () => {
+    render(<DressShowcase slides={[slides[0]!]} />);
+
+    advance(9000);
+
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+  });
+
+  it('restarts the 3 second countdown after a swipe', () => {
+    render(<DressShowcase slides={slides} />);
+
+    advance(2500);
+    swipe(screen.getByRole('group', { name: 'Looks' }), 300, 150);
+    expect(screen.getByText('Doctor')).toBeInTheDocument();
+
+    advance(2500);
+    expect(screen.getByText('Doctor')).toBeInTheDocument();
+    advance(500);
+    expect(screen.getByText('Night Shift')).toBeInTheDocument();
+  });
+
+  it('holds still while the pointer is over the product grid, and resumes after', () => {
+    render(<DressShowcase slides={slides} />);
+    const grid = screen
+      .getByText('Study Scrub')
+      .closest('.grid') as HTMLElement;
+
+    fireEvent.mouseEnter(grid);
+    advance(9000);
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+
+    fireEvent.mouseLeave(grid);
+    advance(3000);
+    expect(screen.getByText('Doctor')).toBeInTheDocument();
+  });
+
+  it('holds still while the carousel has keyboard focus', () => {
+    render(<DressShowcase slides={slides} />);
+    const group = screen.getByRole('group', { name: 'Looks' });
+
+    act(() => group.focus());
+    advance(9000);
+    expect(screen.getByText('Medical Student')).toBeInTheDocument();
+
+    act(() => group.blur());
+    advance(3000);
+    expect(screen.getByText('Doctor')).toBeInTheDocument();
   });
 });

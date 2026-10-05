@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { cn } from '@za/shared';
 import {
@@ -11,6 +11,7 @@ import {
   TwinkleStar,
 } from './decorative';
 import { SWIPE_SURFACE_CLASS, useSwipe } from './use-swipe';
+import { hasKeyboardFocus, useAutoplay } from './use-autoplay';
 
 interface ArtworkScene {
   id: string;
@@ -63,7 +64,6 @@ const ROTATE_MS = 4500;
 export function RotatingArtwork() {
   const [index, setIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const reducedMotionRef = useRef(false);
 
   function goTo(next: number) {
     setIndex(((next % SCENES.length) + SCENES.length) % SCENES.length);
@@ -73,20 +73,13 @@ export function RotatingArtwork() {
     goTo(index + direction),
   );
 
-  useEffect(() => {
-    reducedMotionRef.current = window.matchMedia(
-      '(prefers-reduced-motion: reduce)',
-    ).matches;
-  }, []);
-
-  // Rebuilt after every change of scene, so a swipe restarts the countdown.
-  useEffect(() => {
-    if (isPaused || isDragging || reducedMotionRef.current) return;
-    const timer = setInterval(() => {
-      setIndex((current) => (current + 1) % SCENES.length);
-    }, ROTATE_MS);
-    return () => clearInterval(timer);
-  }, [isPaused, isDragging, index]);
+  // Restarts after every change of scene, so a swipe is followed by a full interval.
+  useAutoplay({
+    onAdvance: () => setIndex((current) => (current + 1) % SCENES.length),
+    intervalMs: ROTATE_MS,
+    paused: isPaused || isDragging,
+    resetKey: index,
+  });
 
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === 'ArrowLeft') goTo(index - 1);
@@ -110,13 +103,7 @@ export function RotatingArtwork() {
       onMouseLeave={() => setIsPaused(false)}
       onFocus={(event) => {
         // Pause for keyboard focus only; a mouse press also focuses the panel.
-        let isKeyboardFocus = true;
-        try {
-          isKeyboardFocus = event.currentTarget.matches(':focus-visible');
-        } catch {
-          // Older engines without :focus-visible: treat any focus as a pause.
-        }
-        if (isKeyboardFocus) setIsPaused(true);
+        if (hasKeyboardFocus(event.currentTarget)) setIsPaused(true);
       }}
       onBlur={() => setIsPaused(false)}
       onKeyDown={handleKeyDown}
