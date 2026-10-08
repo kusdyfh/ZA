@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
 import { cn } from '@za/shared';
 import { SWIPE_SURFACE_CLASS, useSwipe } from './use-swipe';
 import { useAutoplay } from './use-autoplay';
+import { CreepyLink } from './creepy-link';
 import type { Product } from '@/features/products/types';
 import { Logo } from './logo';
 import {
@@ -287,16 +287,16 @@ export function BrandHero({
         )}
 
         <div className="absolute bottom-3 left-[-6%] z-20 rotate-[4deg] sm:bottom-4 lg:bottom-6">
-          <Link
+          <CreepyLink
             href={ctaHref}
-            className="animate-brand-fade-up rounded-brand-pill bg-brand-plum text-brand-paper shadow-brand-tight inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold [animation-delay:240ms] sm:text-sm lg:px-6 lg:py-3 lg:text-base"
+            className="animate-brand-fade-up px-4 py-2 text-xs [animation-delay:240ms] sm:text-sm lg:px-6 lg:py-3 lg:text-base"
           >
             <Sparkles
               className="h-3.5 w-3.5 lg:h-4 lg:w-4"
               aria-hidden="true"
             />
             {ctaLabel}
-          </Link>
+          </CreepyLink>
         </div>
       </div>
     </section>

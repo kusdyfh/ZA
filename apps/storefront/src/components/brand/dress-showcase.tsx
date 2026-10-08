@@ -175,7 +175,9 @@ export function DressShowcase({ slides }: DressShowcaseProps) {
 
       {active.products.length > 0 && (
         <div
-          className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-4"
+          // Tracks are at most one card wide and the row is centered, so a lone product
+          // (or any count short of a full row) sits in the middle of the section.
+          className="mt-10 grid grid-cols-[repeat(auto-fit,minmax(140px,180px))] justify-center gap-4"
           onMouseEnter={() => setIsHoveringProducts(true)}
           onMouseLeave={() => setIsHoveringProducts(false)}
         >

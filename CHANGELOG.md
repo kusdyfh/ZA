@@ -8,6 +8,72 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.19 — The ZA Edit: a Page-Turning Product Lookbook (2026-10-08)
+
+A new homepage section, between the product grid and Doll Dress-Up, shows
+three products as a 3D book. Adapted from VengeanceUI's `interactive-book`
+(MIT), rebuilt without framer-motion.
+
+- **Content:** a plum cover, an inside cover with the logo, an intro page,
+  then one spread per product (photo on the left; name, price with any
+  discount struck through, description and "Shop this piece" on the right),
+  a closing note with the brand philosophy, and an end page with "Shop all"
+  and "Read again". Takes the first three pooled products (featured, best
+  sellers, new arrivals); with fewer it shows what exists, with none the
+  section is omitted. Descriptions lay out by their own direction, so the
+  Arabic Zayra Scrub copy sits right-aligned.
+- **No buttons:** tap the right page to turn forward, the left page to turn
+  back (the left page of the first spread closes the book); or drag, and the
+  sheet follows the finger or mouse, turning if it is more than about 30%
+  of the way and springing back otherwise. Dragging the cover opens it.
+  Links and buttons inside pages still work, and a drag that starts on one
+  does not press it.
+- **Hint:** until the visitor has turned a page, the outer edge of each page
+  lifts a little and breathes, casting a soft shadow; the closed cover does
+  the same. (A curled-corner hint was tried and dropped.)
+- **Without a pointer:** arrow keys and Escape work while the book has focus;
+  Previous/Next buttons appear only when tabbed to. Only the visible faces
+  are focusable and exposed to assistive technology (`inert`/`aria-hidden`
+  on the rest). With `prefers-reduced-motion` pages change instantly and
+  nothing nudges. On narrow screens the book scales down to fit and stays
+  centered.
+- Files: `book.tsx` (generic book), `product-lookbook.tsx` (the section),
+  specs for both; `book-lift-*` keyframes in `tailwind.config.ts`.
+
+### Epic 14.18 — Doll Dress-Up: Fluid Backdrop and a Centered Product (2026-10-08)
+
+- **Fluid morph background** behind Doll Dress-Up, adapted from VengeanceUI's
+  `fluid-morph-bg` (MIT): seven organic shapes breathe between two outlines
+  in translucent blush, rose and lavender over the lavender surface. The
+  morph is the browser's own SVG `<animate>`, so no JavaScript runs per
+  frame; it pauses off screen and is a still picture under
+  `prefers-reduced-motion`. Decorative (`aria-hidden`, no pointer events).
+  The path data is taken unchanged from the source into
+  `fluid-morph-paths.ts`; a spec checks every pair stays morphable.
+- **The product under the looks is centered.** The grid now uses auto-fit
+  tracks (at most one card wide) with `justify-content: center`, so a lone
+  product, or any count short of a full row, sits in the middle.
+
+### Epic 14.17 — Shop Now: a Peek-a-Boo Button (2026-10-08)
+
+The hero's "Shop now" link is now a `CreepyLink`, adapted from VengeanceUI's
+`creepy-button` (MIT) without framer-motion and restyled for ZA (plum cover
+over a pink base, round friendly eyes).
+
+- Mouse: the cover tilts open on hover and the pupils follow the cursor.
+  Touch: no tracking (no hover); pressing tilts the cover slightly.
+  Keyboard: focusing it opens it with the standard focus ring.
+  `prefers-reduced-motion`: no tilt, no blink, the pupils stay put.
+- It is still a real link (`next/link`) to `/shop`, named once for assistive
+  technology (the eyes and the sizing copy are `aria-hidden`).
+- `usePrefersReducedMotion` is now one shared hook (`use-autoplay.ts`),
+  used by the hero, Rotating Artwork, Dress-Up and these components.
+- No dependencies were added. The three effects above all replace the
+  library their originals need (`framer-motion`) with
+  CSS, SVG animation and `IntersectionObserver`. Two other effects from the same
+  collection were tried and removed at the client's request (an ASCII-art
+  footer, and the same effect on the Arabic calligraphy).
+
 ### Epic 14.16 — Instagram Account Linked (2026-10-06)
 
 The store's Instagram account is `@za_store0`

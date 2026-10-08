@@ -111,6 +111,22 @@ const config: Config = {
           '0%, 100%': { opacity: '0.4', transform: 'scale(0.9)' },
           '50%': { opacity: '1', transform: 'scale(1.1)' },
         },
+        // The book's page-turn hint: the outer edge of a page lifts a little and
+        // breathes (the individual `rotate` property composes with the leaf's own
+        // transform).
+        'book-lift-right': {
+          '0%, 100%': { rotate: '0 1 0 -3deg' },
+          '50%': { rotate: '0 1 0 -10deg' },
+        },
+        'book-lift-left': {
+          '0%, 100%': { rotate: '0 1 0 3deg' },
+          '50%': { rotate: '0 1 0 10deg' },
+        },
+        // A quick blink for the peeking eyes of the hero CTA (CreepyLink).
+        'brand-blink': {
+          '0%, 90%, 100%': { transform: 'scaleY(1)' },
+          '95%': { transform: 'scaleY(0.08)' },
+        },
       },
       animation: {
         'brand-float': 'brand-float 2.6s ease-in-out infinite',
@@ -124,6 +140,9 @@ const config: Config = {
         'brand-hero-reveal':
           'brand-hero-reveal 600ms cubic-bezier(.22,1,.36,1) both',
         'brand-twinkle': 'brand-twinkle 3s ease-in-out infinite',
+        'brand-blink': 'brand-blink 4s ease-in-out infinite',
+        'book-lift-right': 'book-lift-right 3.2s ease-in-out infinite',
+        'book-lift-left': 'book-lift-left 3.2s ease-in-out infinite',
       },
       transitionTimingFunction: {
         brand: 'cubic-bezier(.22,1,.36,1)',

@@ -1,5 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 
+/** Tracks the visitor's `prefers-reduced-motion` setting (false where matchMedia is missing). */
+export function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    // No matchMedia (very old browsers, jsdom): assume motion is fine.
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setReduced(query.matches);
+    const onChange = (event: MediaQueryListEvent) => setReduced(event.matches);
+    query.addEventListener('change', onChange);
+    return () => query.removeEventListener('change', onChange);
+  }, []);
+
+  return reduced;
+}
+
 /**
  * Calls `onAdvance` every `intervalMs` for the brand carousels. It holds still
  * while `paused`, in a background tab, and for visitors who asked for reduced
@@ -17,20 +34,9 @@ export function useAutoplay({
   paused?: boolean;
   resetKey?: unknown;
 }) {
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
   const onAdvanceRef = useRef(onAdvance);
   onAdvanceRef.current = onAdvance;
-
-  useEffect(() => {
-    // No matchMedia (very old browsers, jsdom): assume motion is fine.
-    if (typeof window.matchMedia !== 'function') return;
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
-    setPrefersReducedMotion(query.matches);
-    const onChange = (event: MediaQueryListEvent) =>
-      setPrefersReducedMotion(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
 
   useEffect(() => {
     if (paused || prefersReducedMotion) return;

@@ -142,6 +142,17 @@ describe('DressShowcase', () => {
     expect(screen.getByText('Night Shift')).toBeInTheDocument();
   });
 
+  it('centers its products, so a lone product sits in the middle of the section', () => {
+    render(<DressShowcase slides={slides} />);
+    const grid = screen
+      .getByText('Study Scrub')
+      .closest('.grid') as HTMLElement;
+
+    expect(grid).toHaveClass('justify-center');
+    // Auto-fit tracks collapse when there are few cards, which is what lets the row center.
+    expect(grid.className).toContain('repeat(auto-fit,');
+  });
+
   it('renders no product grid for a slide with no linked products', () => {
     render(<DressShowcase slides={slides} />);
 

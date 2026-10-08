@@ -26,8 +26,10 @@ import {
   CalligraphyCard,
   CharacterCarousel,
   DressShowcase,
+  FluidMorphBg,
   LifestyleSection,
   NewsletterSection,
+  ProductLookbook,
   RotatingArtwork,
   Sparkle,
   Sticker,
@@ -318,9 +320,16 @@ export function HomeContent() {
         />
       </section>
 
+      {/* The ZA Edit — three of the pooled products as a page-turning lookbook
+          (blush, between the cream product grid and the lavender Dress-Up). */}
+      <ProductLookbook products={tenProducts} />
+
       {/* Doll Dress-Up — a pale lavender wash, the sequence's one rare
-          accent tint (ADR 0029 §4: gold/lavender, used sparingly). */}
-      <section className="bg-brand-lavender-tint py-section-y">
+          accent tint (ADR 0029 §4: gold/lavender, used sparingly), now with
+          a slowly morphing blush/lavender liquid behind it. The backdrop sits
+          at -z-10 inside this isolated section so the content stays above. */}
+      <section className="bg-brand-lavender-tint py-section-y relative isolate overflow-hidden">
+        <FluidMorphBg className="-z-10" />
         <div className="mb-10 text-center">
           <p className="font-script text-brand-berry text-2xl">Try it on</p>
           <Heading
