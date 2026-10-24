@@ -429,7 +429,9 @@ export function Book({
               {endPage({ restart: close })}
             </div>
 
-            {/* The lifted edge of a page throws a soft shadow on the page beneath it. */}
+            {/* The lifted right-hand edge throws a soft shadow on the page beneath it. The
+                left-hand edge has none: the page beneath it is the cover, and a shadow
+                there would land on the table, showing as a dark blob while the cover swings. */}
             {showPageHint && canNext && (
               <span
                 aria-hidden="true"
@@ -439,19 +441,6 @@ export function Book({
                   transform: `translateZ(${(sheets.length - (turned + 1)) * SHEET_DEPTH_STEP - SHEET_DEPTH_STEP / 2}px)`,
                   background:
                     'linear-gradient(to right, transparent, rgba(112, 64, 96, 0.22))',
-                }}
-              />
-            )}
-            {showPageHint && (
-              <span
-                aria-hidden="true"
-                data-book-lift-shadow="left"
-                className="rounded-l-brand-md pointer-events-none absolute bottom-3 top-3 w-5"
-                style={{
-                  left: -pageWidth,
-                  transform: `translateZ(${turned >= 0 ? (turned + 1) * SHEET_DEPTH_STEP - SHEET_DEPTH_STEP / 2 : -SHEET_DEPTH_STEP / 2}px)`,
-                  background:
-                    'linear-gradient(to left, transparent, rgba(112, 64, 96, 0.22))',
                 }}
               />
             )}

@@ -171,9 +171,10 @@ describe('Book', () => {
       expect(
         container.querySelector('[data-book-lift-shadow="right"]'),
       ).not.toBeNull();
+      // No shadow on the left: it would fall on the table beside the cover.
       expect(
         container.querySelector('[data-book-lift-shadow="left"]'),
-      ).not.toBeNull();
+      ).toBeNull();
     });
 
     it('has no visible page buttons', () => {

@@ -96,7 +96,7 @@ function CoverFace() {
 function InsideCover() {
   return (
     <Page side="left" className="bg-brand-blush items-center justify-center">
-      <Logo variant="wordmark" className="h-28" />
+      <Logo variant="wordmark" loading="eager" className="h-28" />
       <DoodleUnderline className="text-brand-petal-300 mt-4" />
       <p className="font-script text-brand-berry mt-3 text-2xl">
         for long shifts

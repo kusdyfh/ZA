@@ -21,6 +21,12 @@ export interface LogoProps {
    * for placements on a Rose/Dusty-colored background.
    */
   tone?: 'auto' | 'fixed-light' | 'on-rose';
+  /**
+   * `eager` loads the artwork now rather than when it nears the viewport — for
+   * a logo that starts out hidden (e.g. on the back of a book cover), which
+   * would otherwise pop in the moment it is first shown.
+   */
+  loading?: 'lazy' | 'eager';
   className?: string;
 }
 
@@ -123,6 +129,7 @@ function StethoHeartMark({ className }: { className?: string }) {
 export function Logo({
   variant = 'wordmark',
   tone = 'auto',
+  loading,
   className,
 }: LogoProps) {
   if (variant === 'compact') {
@@ -182,6 +189,7 @@ export function Logo({
       width={LOGO_WIDTH}
       height={LOGO_HEIGHT}
       sizes="64px"
+      loading={loading}
       className={cn('h-12 w-auto', className)}
     />
   );
