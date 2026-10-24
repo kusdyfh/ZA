@@ -1,4 +1,3 @@
-import Image from 'next/image';
 import { cn } from '@za/shared';
 import {
   DoodleUnderline,
@@ -6,6 +5,7 @@ import {
   Sparkle,
   TwinkleStar,
 } from './decorative';
+import { StaggeredReveal } from './staggered-reveal';
 
 const SOURCE_WIDTH = 1290;
 const SOURCE_HEIGHT = 555;
@@ -26,7 +26,8 @@ export interface CalligraphyCardProps {
  * A hand-lettered Arabic tagline set on a paper card (ADR 0029 §8 — the
  * dashed-frame signage motif). The artwork is transparent so the card's
  * own surface shows through; the dashed inner frame and the corner sparkles
- * keep it in the same family as the hero and the arch plaques.
+ * keep it in the same family as the hero and the arch plaques. The lettering
+ * rises into place strip by strip as the page scrolls (`StaggeredReveal`).
  */
 export function CalligraphyCard({
   src,
@@ -57,24 +58,15 @@ export function CalligraphyCard({
         </FloatingDecoration>
 
         <div className="rounded-brand-md border-brand-petal-300 bg-brand-blush/40 flex flex-col items-center border border-dashed px-4 py-8 sm:px-10 sm:py-12">
-          <div
-            className="relative w-full max-w-[560px] overflow-hidden"
-            style={{ aspectRatio: `${crop.width} / ${crop.height}` }}
-          >
-            <Image
-              src={src}
-              alt={text}
-              width={SOURCE_WIDTH}
-              height={SOURCE_HEIGHT}
-              sizes="(min-width: 896px) 900px, 140vw"
-              className="absolute max-w-none"
-              style={{
-                width: `${(SOURCE_WIDTH / crop.width) * 100}%`,
-                left: `${(-crop.x / crop.width) * 100}%`,
-                top: `${(-crop.y / crop.height) * 100}%`,
-              }}
-            />
-          </div>
+          <StaggeredReveal
+            src={src}
+            alt={text}
+            width={SOURCE_WIDTH}
+            height={SOURCE_HEIGHT}
+            crop={crop}
+            sizes="(min-width: 896px) 900px, 140vw"
+            className="w-full max-w-[560px]"
+          />
           <DoodleUnderline className="text-brand-petal-300 mt-2" />
         </div>
       </div>

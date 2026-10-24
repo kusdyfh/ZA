@@ -8,6 +8,25 @@ has no public releases yet, so entries are grouped by epic under
 
 ## [Unreleased]
 
+### Epic 14.20 — The Arabic Tagline Rises as You Scroll (2026-10-09)
+
+The calligraphy card on the homepage now reveals its lettering as the visitor
+scrolls down, adapted from VengeanceUI's `staggered-grid` (MIT) and rebuilt
+without gsap.
+
+- **Effect:** the artwork is cut into nine vertical strips that rise from
+  below and fade in, the middle ones first and the outer ones a beat later,
+  driven by scroll position: complete once the card reaches the middle of the
+  screen, and running backwards when scrolling up. Once settled, the whole
+  image is shown, so there are no seams.
+- **Strips, not characters:** the original splits text into letters; the
+  tagline is Arabic lettering, whose joined letters would break if cut apart.
+- **Accessibility:** the whole artwork keeps its Arabic text as the alt; the
+  strip copies are `aria-hidden`. With `prefers-reduced-motion`, or without
+  scripts, the card simply shows the artwork.
+- Files: `staggered-reveal.tsx` (+ spec), used by `calligraphy-card.tsx`.
+  No dependencies added.
+
 ### Epic 14.19 — The ZA Edit: a Page-Turning Product Lookbook (2026-10-08)
 
 A new homepage section, between the product grid and Doll Dress-Up, shows
