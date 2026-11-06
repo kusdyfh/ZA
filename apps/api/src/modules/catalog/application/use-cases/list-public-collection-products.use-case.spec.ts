@@ -1,6 +1,9 @@
 import { ListPublicCollectionProductsUseCase } from './list-public-collection-products.use-case';
 import type { ListCollectionProductsUseCase } from './list-collection-products.use-case';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
@@ -24,6 +27,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -38,7 +42,9 @@ describe('ListPublicCollectionProductsUseCase', () => {
   let useCase: ListPublicCollectionProductsUseCase;
 
   beforeEach(() => {
-    listCollectionProducts = { execute: jest.fn() } as unknown as jest.Mocked<ListCollectionProductsUseCase>;
+    listCollectionProducts = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<ListCollectionProductsUseCase>;
     useCase = new ListPublicCollectionProductsUseCase(listCollectionProducts);
   });
 
@@ -52,12 +58,16 @@ describe('ListPublicCollectionProductsUseCase', () => {
     const result = await useCase.execute({ collectionId: 'col-1' });
 
     expect(result.map((p) => p.id)).toEqual(['active-1']);
-    expect(listCollectionProducts.execute).toHaveBeenCalledWith({ collectionId: 'col-1' });
+    expect(listCollectionProducts.execute).toHaveBeenCalledWith({
+      collectionId: 'col-1',
+    });
   });
 
   it('propagates errors from the delegated use-case (e.g. CollectionNotFoundError)', async () => {
     const error = new Error('boom');
     listCollectionProducts.execute.mockRejectedValue(error);
-    await expect(useCase.execute({ collectionId: 'missing' })).rejects.toThrow(error);
+    await expect(useCase.execute({ collectionId: 'missing' })).rejects.toThrow(
+      error,
+    );
   });
 });

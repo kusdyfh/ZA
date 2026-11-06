@@ -2,7 +2,10 @@ import { ListPublicProductVariantsUseCase } from './list-public-product-variants
 import type { ListProductVariantsUseCase } from './list-product-variants.use-case';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { ProductVariant } from '../../domain/entities/product-variant.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
@@ -28,6 +31,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -70,9 +74,17 @@ describe('ListPublicProductVariantsUseCase', () => {
       replaceTags: jest.fn(),
       listTagIds: jest.fn(),
     };
-    storeContext = { getCurrentStoreId: jest.fn().mockResolvedValue('store-1') } as unknown as StoreContext;
-    listProductVariants = { execute: jest.fn() } as unknown as jest.Mocked<ListProductVariantsUseCase>;
-    useCase = new ListPublicProductVariantsUseCase(products, storeContext, listProductVariants);
+    storeContext = {
+      getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
+    } as unknown as StoreContext;
+    listProductVariants = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<ListProductVariantsUseCase>;
+    useCase = new ListPublicProductVariantsUseCase(
+      products,
+      storeContext,
+      listProductVariants,
+    );
   });
 
   it('delegates to ListProductVariantsUseCase when the product is ACTIVE', async () => {
@@ -83,18 +95,26 @@ describe('ListPublicProductVariantsUseCase', () => {
     const result = await useCase.execute({ productId: 'prod-1' });
 
     expect(result).toEqual([variant]);
-    expect(listProductVariants.execute).toHaveBeenCalledWith({ productId: 'prod-1' });
+    expect(listProductVariants.execute).toHaveBeenCalledWith({
+      productId: 'prod-1',
+    });
   });
 
   it('throws ProductNotFoundError when the product does not exist', async () => {
     products.findById.mockResolvedValue(null);
-    await expect(useCase.execute({ productId: 'missing' })).rejects.toThrow(ProductNotFoundError);
+    await expect(useCase.execute({ productId: 'missing' })).rejects.toThrow(
+      ProductNotFoundError,
+    );
     expect(listProductVariants.execute).not.toHaveBeenCalled();
   });
 
   it('throws ProductNotFoundError when the product is not ACTIVE', async () => {
-    products.findById.mockResolvedValue(buildProduct({ status: PRODUCT_STATUS.DRAFT }));
-    await expect(useCase.execute({ productId: 'prod-1' })).rejects.toThrow(ProductNotFoundError);
+    products.findById.mockResolvedValue(
+      buildProduct({ status: PRODUCT_STATUS.DRAFT }),
+    );
+    await expect(useCase.execute({ productId: 'prod-1' })).rejects.toThrow(
+      ProductNotFoundError,
+    );
     expect(listProductVariants.execute).not.toHaveBeenCalled();
   });
 });

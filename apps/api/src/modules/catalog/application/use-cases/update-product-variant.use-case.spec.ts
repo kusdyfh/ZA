@@ -4,15 +4,24 @@ import type { ProductRepository } from '../../domain/repositories/product.reposi
 import type { ColorRepository } from '../../domain/repositories/color.repository';
 import type { SizeRepository } from '../../domain/repositories/size.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
-import { ProductVariant, type ProductVariantProps } from '../../domain/entities/product-variant.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
+import {
+  ProductVariant,
+  type ProductVariantProps,
+} from '../../domain/entities/product-variant.entity';
 import { Color, type ColorProps } from '../../domain/entities/color.entity';
 import { Size, type SizeProps } from '../../domain/entities/size.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { PRODUCT_STATUS } from '../../domain/constants/product-status.constants';
-import { ProductVariantNotFoundError, SkuAlreadyInUseError } from '../../domain/errors/catalog.errors';
+import {
+  ProductVariantNotFoundError,
+  SkuAlreadyInUseError,
+} from '../../domain/errors/catalog.errors';
 
 function buildProduct(overrides: Partial<ProductProps> = {}): Product {
   return Product.reconstitute({
@@ -32,6 +41,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -65,7 +75,9 @@ function buildSize(overrides: Partial<SizeProps> = {}): Size {
   });
 }
 
-function buildVariant(overrides: Partial<ProductVariantProps> = {}): ProductVariant {
+function buildVariant(
+  overrides: Partial<ProductVariantProps> = {},
+): ProductVariant {
   return ProductVariant.reconstitute({
     id: 'variant-1',
     storeId: 'store-1',
@@ -130,14 +142,20 @@ describe('UpdateProductVariantUseCase', () => {
     storeContext = {
       getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
     } as unknown as StoreContext;
-    useCase = new UpdateProductVariantUseCase(variants, products, colors, sizes, storeContext);
+    useCase = new UpdateProductVariantUseCase(
+      variants,
+      products,
+      colors,
+      sizes,
+      storeContext,
+    );
   });
 
   it('throws ProductVariantNotFoundError when the variant does not exist', async () => {
     variants.findById.mockResolvedValue(null);
-    await expect(useCase.execute({ variantId: 'missing', sku: 'SKU' })).rejects.toThrow(
-      ProductVariantNotFoundError,
-    );
+    await expect(
+      useCase.execute({ variantId: 'missing', sku: 'SKU' }),
+    ).rejects.toThrow(ProductVariantNotFoundError);
   });
 
   it('does not treat the variant being updated as a duplicate of itself', async () => {
@@ -162,7 +180,9 @@ describe('UpdateProductVariantUseCase', () => {
     const variant = buildVariant();
     variants.findById.mockResolvedValue(variant);
     products.findById.mockResolvedValue(buildProduct());
-    variants.findBySku.mockResolvedValue(buildVariant({ id: 'other-variant', sku: 'SKU-B' }));
+    variants.findBySku.mockResolvedValue(
+      buildVariant({ id: 'other-variant', sku: 'SKU-B' }),
+    );
 
     await expect(
       useCase.execute({ variantId: 'variant-1', sku: 'SKU-B' }),

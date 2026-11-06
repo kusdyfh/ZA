@@ -35,6 +35,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -58,14 +59,22 @@ describe('ProductPolicy.validateName / validateSku', () => {
 describe('ProductPolicy.validatePricing', () => {
   it('rejects a discount price not lower than the base price', () => {
     expect(() =>
-      ProductPolicy.validatePricing(Money.create(100, 'IQD'), Money.create(100, 'IQD')),
+      ProductPolicy.validatePricing(
+        Money.create(100, 'IQD'),
+        Money.create(100, 'IQD'),
+      ),
     ).toThrow(DiscountPriceNotLowerThanPriceError);
   });
 
   it('accepts a lower discount price or none at all', () => {
-    expect(() => ProductPolicy.validatePricing(Money.create(100, 'IQD'), null)).not.toThrow();
     expect(() =>
-      ProductPolicy.validatePricing(Money.create(100, 'IQD'), Money.create(80, 'IQD')),
+      ProductPolicy.validatePricing(Money.create(100, 'IQD'), null),
+    ).not.toThrow();
+    expect(() =>
+      ProductPolicy.validatePricing(
+        Money.create(100, 'IQD'),
+        Money.create(80, 'IQD'),
+      ),
     ).not.toThrow();
   });
 });
@@ -73,19 +82,28 @@ describe('ProductPolicy.validatePricing', () => {
 describe('ProductPolicy.assertReadyForActive', () => {
   it('allows a fully-formed product with a variant and cover image', () => {
     expect(() =>
-      ProductPolicy.assertReadyForActive(buildProduct(), { hasVariant: true, hasCoverImage: true }),
+      ProductPolicy.assertReadyForActive(buildProduct(), {
+        hasVariant: true,
+        hasCoverImage: true,
+      }),
     ).not.toThrow();
   });
 
   it('rejects when there is no variant', () => {
     expect(() =>
-      ProductPolicy.assertReadyForActive(buildProduct(), { hasVariant: false, hasCoverImage: true }),
+      ProductPolicy.assertReadyForActive(buildProduct(), {
+        hasVariant: false,
+        hasCoverImage: true,
+      }),
     ).toThrow(ProductNotReadyForActiveError);
   });
 
   it('rejects when there is no cover image', () => {
     expect(() =>
-      ProductPolicy.assertReadyForActive(buildProduct(), { hasVariant: true, hasCoverImage: false }),
+      ProductPolicy.assertReadyForActive(buildProduct(), {
+        hasVariant: true,
+        hasCoverImage: false,
+      }),
     ).toThrow(ProductNotReadyForActiveError);
   });
 
@@ -110,7 +128,11 @@ describe('ProductPolicy.validateMediaSet', () => {
   it('allows an image with alt text and no cover', () => {
     expect(() =>
       ProductPolicy.validateMediaSet([
-        { type: PRODUCT_MEDIA_TYPE.IMAGE, altText: 'Front view', isCover: false },
+        {
+          type: PRODUCT_MEDIA_TYPE.IMAGE,
+          altText: 'Front view',
+          isCover: false,
+        },
       ]),
     ).not.toThrow();
   });
@@ -157,19 +179,28 @@ describe('ProductPolicy.assertNoDuplicateVariantAttributes', () => {
 
   it('rejects a new variant matching an existing color+size combination', () => {
     expect(() =>
-      ProductPolicy.assertNoDuplicateVariantAttributes(existing, { colorId: 'red', sizeId: 'm' }),
+      ProductPolicy.assertNoDuplicateVariantAttributes(existing, {
+        colorId: 'red',
+        sizeId: 'm',
+      }),
     ).toThrow(DuplicateVariantAttributesError);
   });
 
   it('rejects a duplicate of a no-color/no-size variant', () => {
     expect(() =>
-      ProductPolicy.assertNoDuplicateVariantAttributes(existing, { colorId: null, sizeId: null }),
+      ProductPolicy.assertNoDuplicateVariantAttributes(existing, {
+        colorId: null,
+        sizeId: null,
+      }),
     ).toThrow(DuplicateVariantAttributesError);
   });
 
   it('allows a genuinely new combination', () => {
     expect(() =>
-      ProductPolicy.assertNoDuplicateVariantAttributes(existing, { colorId: 'blue', sizeId: 'l' }),
+      ProductPolicy.assertNoDuplicateVariantAttributes(existing, {
+        colorId: 'blue',
+        sizeId: 'l',
+      }),
     ).not.toThrow();
   });
 
@@ -194,12 +225,16 @@ describe('ProductPolicy.assertVariantRemovable', () => {
 
   it('allows removing a variant when others remain', () => {
     const product = buildProduct({ status: PRODUCT_STATUS.ACTIVE });
-    expect(() => ProductPolicy.assertVariantRemovable(product, 1)).not.toThrow();
+    expect(() =>
+      ProductPolicy.assertVariantRemovable(product, 1),
+    ).not.toThrow();
   });
 
   it('allows removing the last variant of a Draft product', () => {
     const product = buildProduct({ status: PRODUCT_STATUS.DRAFT });
-    expect(() => ProductPolicy.assertVariantRemovable(product, 0)).not.toThrow();
+    expect(() =>
+      ProductPolicy.assertVariantRemovable(product, 0),
+    ).not.toThrow();
   });
 });
 
@@ -224,6 +259,8 @@ describe('ProductPolicy.assertActiveProductKeepsCoverImage', () => {
 
   it('allows a media set with no cover for a Draft product', () => {
     const product = buildProduct({ status: PRODUCT_STATUS.DRAFT });
-    expect(() => ProductPolicy.assertActiveProductKeepsCoverImage(product, [])).not.toThrow();
+    expect(() =>
+      ProductPolicy.assertActiveProductKeepsCoverImage(product, []),
+    ).not.toThrow();
   });
 });

@@ -3,6 +3,7 @@ import { Slug } from '../value-objects/slug.vo';
 import { Money } from '../value-objects/money.vo';
 import { SeoMetadata } from '../value-objects/seo-metadata.vo';
 import { PRODUCT_STATUS } from '../constants/product-status.constants';
+import { PRODUCT_PLACEMENT } from '../constants/product-placement.constants';
 import { DiscountPriceNotLowerThanPriceError } from '../errors/catalog.errors';
 
 function buildProduct(overrides: Partial<ProductProps> = {}): Product {
@@ -23,6 +24,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -36,9 +38,9 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
 describe('Product#updatePricing', () => {
   it('re-validates before applying, via ProductPolicy', () => {
     const product = buildProduct();
-    expect(() => product.updatePricing(Money.create(50, 'IQD'), Money.create(60, 'IQD'))).toThrow(
-      DiscountPriceNotLowerThanPriceError,
-    );
+    expect(() =>
+      product.updatePricing(Money.create(50, 'IQD'), Money.create(60, 'IQD')),
+    ).toThrow(DiscountPriceNotLowerThanPriceError);
     expect(product.price.toNumber()).toBe(45000);
   });
 
@@ -52,9 +54,15 @@ describe('Product#updatePricing', () => {
 
 describe('Product#isVisibleInCatalog', () => {
   it('is visible only when status is ACTIVE', () => {
-    expect(buildProduct({ status: PRODUCT_STATUS.DRAFT }).isVisibleInCatalog()).toBe(false);
-    expect(buildProduct({ status: PRODUCT_STATUS.ACTIVE }).isVisibleInCatalog()).toBe(true);
-    expect(buildProduct({ status: PRODUCT_STATUS.ARCHIVED }).isVisibleInCatalog()).toBe(false);
+    expect(
+      buildProduct({ status: PRODUCT_STATUS.DRAFT }).isVisibleInCatalog(),
+    ).toBe(false);
+    expect(
+      buildProduct({ status: PRODUCT_STATUS.ACTIVE }).isVisibleInCatalog(),
+    ).toBe(true);
+    expect(
+      buildProduct({ status: PRODUCT_STATUS.ARCHIVED }).isVisibleInCatalog(),
+    ).toBe(false);
   });
 });
 
@@ -64,6 +72,28 @@ describe('Product#setMerchandisingFlags', () => {
     product.setMerchandisingFlags({ isBestSeller: true });
     expect(product.isFeatured).toBe(true);
     expect(product.isBestSeller).toBe(true);
+  });
+});
+
+describe('Product#assignPlacements', () => {
+  it('replaces the full set of homepage placements', () => {
+    const product = buildProduct({ placements: [PRODUCT_PLACEMENT.HOME_HERO] });
+    product.assignPlacements([
+      PRODUCT_PLACEMENT.ART_STORY_WALL,
+      PRODUCT_PLACEMENT.ZA_EDIT_BOOK,
+    ]);
+    expect(product.placements).toEqual([
+      PRODUCT_PLACEMENT.ART_STORY_WALL,
+      PRODUCT_PLACEMENT.ZA_EDIT_BOOK,
+    ]);
+  });
+
+  it('clears every placement when given an empty array', () => {
+    const product = buildProduct({
+      placements: [PRODUCT_PLACEMENT.DOLL_DRESS_UP],
+    });
+    product.assignPlacements([]);
+    expect(product.placements).toEqual([]);
   });
 });
 
@@ -78,7 +108,12 @@ describe('Product#changeStatus', () => {
 describe('Product#updateHighlights', () => {
   it('trims entries and drops empty ones', () => {
     const product = buildProduct();
-    product.updateHighlights(['  Moisture-wicking  ', '', '   ', '4-way stretch']);
+    product.updateHighlights([
+      '  Moisture-wicking  ',
+      '',
+      '   ',
+      '4-way stretch',
+    ]);
     expect(product.highlights).toEqual(['Moisture-wicking', '4-way stretch']);
   });
 

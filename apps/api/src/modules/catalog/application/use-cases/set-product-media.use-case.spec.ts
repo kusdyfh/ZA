@@ -39,6 +39,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -217,5 +218,72 @@ describe('SetProductMediaUseCase', () => {
       }),
     ).rejects.toThrow(ColorNotFoundError);
     expect(media.replaceForProduct).not.toHaveBeenCalled();
+  });
+
+  it("syncs the product's ogImageUrl to the new cover image (docs/product/03-PRODUCTS.md §SEO)", async () => {
+    const product = buildProduct({
+      seo: SeoMetadata.create({ metaTitle: 'Custom title' }),
+    });
+    products.findById.mockResolvedValue(product);
+
+    await useCase.execute({
+      productId: 'prod-1',
+      media: [
+        {
+          type: PRODUCT_MEDIA_TYPE.IMAGE,
+          url: 'https://example.com/not-cover.jpg',
+          altText: 'Not cover',
+          isCover: false,
+          colorId: null,
+        },
+        {
+          type: PRODUCT_MEDIA_TYPE.IMAGE,
+          url: 'https://example.com/cover.jpg',
+          altText: 'Cover',
+          isCover: true,
+          colorId: null,
+        },
+      ],
+    });
+
+    expect(products.save).toHaveBeenCalledTimes(1);
+    expect(product.seo.ogImageUrl).toBe('https://example.com/cover.jpg');
+    expect(product.seo.metaTitle).toBe('Custom title');
+  });
+
+  it('clears ogImageUrl when the new media set has no cover image (Draft product)', async () => {
+    const product = buildProduct({
+      seo: SeoMetadata.create({
+        ogImageUrl: 'https://example.com/old-cover.jpg',
+      }),
+    });
+    products.findById.mockResolvedValue(product);
+
+    await useCase.execute({ productId: 'prod-1', media: [] });
+
+    expect(products.save).toHaveBeenCalledTimes(1);
+    expect(product.seo.ogImageUrl).toBeNull();
+  });
+
+  it('does not write the product when ogImageUrl is already in sync with the cover image', async () => {
+    const product = buildProduct({
+      seo: SeoMetadata.create({ ogImageUrl: 'https://example.com/cover.jpg' }),
+    });
+    products.findById.mockResolvedValue(product);
+
+    await useCase.execute({
+      productId: 'prod-1',
+      media: [
+        {
+          type: PRODUCT_MEDIA_TYPE.IMAGE,
+          url: 'https://example.com/cover.jpg',
+          altText: 'Cover',
+          isCover: true,
+          colorId: null,
+        },
+      ],
+    });
+
+    expect(products.save).not.toHaveBeenCalled();
   });
 });

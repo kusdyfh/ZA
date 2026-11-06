@@ -95,6 +95,7 @@ import { ListPublicCollectionProductsUseCase } from './application/use-cases/lis
 import { ProductsController } from './http/products.controller';
 import { ProductVariantsController } from './http/product-variants.controller';
 import { ProductMediaController } from './http/product-media.controller';
+import { MediaUploadController } from './http/media-upload.controller';
 import { ProductSpecificationsController } from './http/product-specifications.controller';
 import { ProductRelationsController } from './http/product-relations.controller';
 import { CategoriesController } from './http/categories.controller';
@@ -121,10 +122,19 @@ const REPOSITORY_PROVIDERS = [
   { provide: PRODUCT_REPOSITORY, useClass: PrismaProductRepository },
   { provide: COLOR_REPOSITORY, useClass: PrismaColorRepository },
   { provide: SIZE_REPOSITORY, useClass: PrismaSizeRepository },
-  { provide: PRODUCT_VARIANT_REPOSITORY, useClass: PrismaProductVariantRepository },
+  {
+    provide: PRODUCT_VARIANT_REPOSITORY,
+    useClass: PrismaProductVariantRepository,
+  },
   { provide: PRODUCT_MEDIA_REPOSITORY, useClass: PrismaProductMediaRepository },
-  { provide: PRODUCT_SPECIFICATION_REPOSITORY, useClass: PrismaProductSpecificationRepository },
-  { provide: PRODUCT_RELATION_REPOSITORY, useClass: PrismaProductRelationRepository },
+  {
+    provide: PRODUCT_SPECIFICATION_REPOSITORY,
+    useClass: PrismaProductSpecificationRepository,
+  },
+  {
+    provide: PRODUCT_RELATION_REPOSITORY,
+    useClass: PrismaProductRelationRepository,
+  },
 ];
 
 const USE_CASE_PROVIDERS = [
@@ -204,6 +214,7 @@ const USE_CASE_PROVIDERS = [
     ProductsController,
     ProductVariantsController,
     ProductMediaController,
+    MediaUploadController,
     ProductSpecificationsController,
     ProductRelationsController,
     CategoriesController,
@@ -227,6 +238,10 @@ const USE_CASE_PROVIDERS = [
   // currencyCode to snapshot OrderItem fields at checkout time (see
   // docs/v2/adr/0015). These two remain the only repositories exported —
   // not a general opening of Catalog's persistence internals.
-  exports: [...USE_CASE_PROVIDERS, PRODUCT_VARIANT_REPOSITORY, PRODUCT_REPOSITORY],
+  exports: [
+    ...USE_CASE_PROVIDERS,
+    PRODUCT_VARIANT_REPOSITORY,
+    PRODUCT_REPOSITORY,
+  ],
 })
 export class CatalogModule {}

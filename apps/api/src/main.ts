@@ -1,7 +1,9 @@
 import 'reflect-metadata';
+import { join } from 'path';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { ValidationPipe } from '@nestjs/common';
+import { type NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from 'nestjs-pino';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
@@ -13,7 +15,15 @@ async function bootstrap(): Promise<void> {
   // verification needs the exact raw request bytes; NestJS populates
   // `req.rawBody` alongside the normal parsed body when this is set, no
   // other request handling changes.
-  const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bufferLogs: true,
+    rawBody: true,
+  });
+
+  // Serves files written by MediaUploadController (catalog/media/uploads)
+  // at /uploads/... — outside the global prefix, same as a real CDN URL
+  // would be, so the Media tab's "url" field works unchanged.
+  app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
   const logger = app.get(Logger);
   app.useLogger(logger);
@@ -58,7 +68,10 @@ async function bootstrap(): Promise<void> {
             'docs/v2/adr/0018-customer-accounts.md.',
         )
         .setVersion('1.0')
-        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
+        .addBearerAuth(
+          { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+          'access-token',
+        )
         .addBearerAuth(
           { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
           'customer-access-token',

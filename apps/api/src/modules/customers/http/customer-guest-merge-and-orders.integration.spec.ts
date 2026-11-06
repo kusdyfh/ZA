@@ -30,11 +30,17 @@ describe('Customers: guest cart merge + guest order association + order history 
   const testEmail = `guest-merge-${randomUUID()}@example.com`;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('v1', { exclude: ['health', 'health/ready'] });
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
     await app.init();
@@ -53,9 +59,13 @@ describe('Customers: guest cart merge + guest order association + order history 
     }
 
     await prisma.customerRefreshToken.deleteMany({ where: { customerId } });
-    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+    });
     if (customer) {
-      await prisma.cart.deleteMany({ where: { guestToken: customer.cartToken } });
+      await prisma.cart.deleteMany({
+        where: { guestToken: customer.cartToken },
+      });
     }
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await deleteTestAdmin(prisma, supportAdminId);
@@ -81,16 +91,28 @@ describe('Customers: guest cart merge + guest order association + order history 
         guestToken,
       });
     expect(register.status).toBe(201);
-    const body = ok<{ customer: { id: string; cartToken: string } }>(register).data;
+    const body = ok<{ customer: { id: string; cartToken: string } }>(
+      register,
+    ).data;
     customerId = body.customer.id;
 
-    const mergedCart = await request(server).get(`/v1/checkout/cart?guestToken=${body.customer.cartToken}`);
-    const cartBody = ok<{ items: Array<{ variantId: string }> }>(mergedCart).data;
-    expect(cartBody.items.some((item) => item.variantId === variant.id)).toBe(true);
+    const mergedCart = await request(server).get(
+      `/v1/checkout/cart?guestToken=${body.customer.cartToken}`,
+    );
+    const cartBody = ok<{ items: Array<{ variantId: string }> }>(
+      mergedCart,
+    ).data;
+    expect(cartBody.items.some((item) => item.variantId === variant.id)).toBe(
+      true,
+    );
   });
 
   it('associates a prior guest order with the same email at login time, and it shows up in order history', async () => {
     const guestToken = `guest-${randomUUID()}`;
+    // Unique per run (not a fixed literal) — RequestPhoneVerificationUseCase
+    // enforces a real 60s per-phone resend cooldown against this same DB,
+    // which a hardcoded number would trip on a quick repeat test run.
+    const phone = `+9647${Date.now().toString().slice(-9)}`;
     const variant = await prisma.productVariant.findFirstOrThrow({
       where: { sku: 'ZA-PANT-RELAX-001-BLK-M' },
     });
@@ -102,13 +124,21 @@ describe('Customers: guest cart merge + guest order association + order history 
       .post('/v1/checkout/cart/items')
       .send({ guestToken, variantId: variant.id, quantity: 1 });
 
+    const requestCode = await request(server)
+      .post('/v1/checkout/phone-verification/request')
+      .send({ phone });
+    const { code } = ok<{ code: string }>(requestCode).data;
+    await request(server)
+      .post('/v1/checkout/phone-verification/confirm')
+      .send({ phone, code });
+
     const placeOrder = await request(server)
       .post('/v1/checkout/place-order')
       .send({
         guestToken,
         customerName: 'Jane Doe',
         customerEmail: testEmail,
-        customerPhone: '+9647700000000',
+        customerPhone: phone,
         shippingFullName: 'Jane Doe',
         shippingPhone: '+9647700000000',
         shippingLine1: '1 Test Street',
@@ -123,7 +153,9 @@ describe('Customers: guest cart merge + guest order association + order history 
     placedOrderId = orderId;
 
     // The order was placed as a guest — not yet linked.
-    const orderBeforeLogin = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    const orderBeforeLogin = await prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+    });
     expect(orderBeforeLogin.customerId).toBeNull();
 
     const login = await request(server)
@@ -132,21 +164,33 @@ describe('Customers: guest cart merge + guest order association + order history 
     expect(login.status).toBe(201);
     const accessToken = ok<{ accessToken: string }>(login).data.accessToken;
 
-    const orderAfterLogin = await prisma.order.findUniqueOrThrow({ where: { id: orderId } });
+    const orderAfterLogin = await prisma.order.findUniqueOrThrow({
+      where: { id: orderId },
+    });
     expect(orderAfterLogin.customerId).toBe(customerId);
 
     const history = await request(server)
       .get('/v1/customers/me/orders')
       .set('Authorization', `Bearer ${accessToken}`);
     expect(history.status).toBe(200);
-    expect(ok<Array<{ id: string }>>(history).data.some((order) => order.id === orderId)).toBe(true);
+    expect(
+      ok<Array<{ id: string }>>(history).data.some(
+        (order) => order.id === orderId,
+      ),
+    ).toBe(true);
   });
 
   it('lets staff (CUSTOMERS_VIEW) look up the customer profile and order history for support', async () => {
     // MANAGER (not SALES) so the same admin can also cancel the test
     // order in afterAll — SALES has ORDERS_FULFILL but not ORDERS_REFUND.
-    const managerRole = await prisma.role.findFirstOrThrow({ where: { key: 'MANAGER' } });
-    const supportAdmin = await createTestAdmin(prisma, managerRole.id, 'customer-support');
+    const managerRole = await prisma.role.findFirstOrThrow({
+      where: { key: 'MANAGER' },
+    });
+    const supportAdmin = await createTestAdmin(
+      prisma,
+      managerRole.id,
+      'customer-support',
+    );
     supportAdminId = supportAdmin.id;
     const login = await request(server)
       .post('/v1/auth/login')

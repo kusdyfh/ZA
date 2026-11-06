@@ -6,6 +6,7 @@ import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { PRODUCT_STATUS } from '../../domain/constants/product-status.constants';
+import { PRODUCT_PLACEMENT } from '../../domain/constants/product-placement.constants';
 
 describe('PrismaProductRepository (integration)', () => {
   const prisma = new PrismaService();
@@ -21,7 +22,10 @@ describe('PrismaProductRepository (integration)', () => {
 
   beforeAll(async () => {
     const store = await prisma.store.create({
-      data: { name: 'Integration Test Store', domain: `test-${randomUUID()}.local` },
+      data: {
+        name: 'Integration Test Store',
+        domain: `test-${randomUUID()}.local`,
+      },
     });
     storeId = store.id;
 
@@ -30,7 +34,11 @@ describe('PrismaProductRepository (integration)', () => {
     });
     categoryId = category.id;
 
-    const tagA = await tagRepository.create({ storeId, name: 'New', slug: Slug.fromRaw('new') });
+    const tagA = await tagRepository.create({
+      storeId,
+      name: 'New',
+      slug: Slug.fromRaw('new'),
+    });
     const tagB = await tagRepository.create({
       storeId,
       name: 'Bestseller',
@@ -68,6 +76,10 @@ describe('PrismaProductRepository (integration)', () => {
       isBestSeller: false,
       isNewArrival: false,
       isGiftBox: false,
+      placements: [
+        PRODUCT_PLACEMENT.HOME_HERO,
+        PRODUCT_PLACEMENT.ART_STORY_WALL,
+      ],
       seo: SeoMetadata.create({ metaTitle: 'V-Neck Top' }),
       highlights: ['Moisture-wicking', '4-way stretch'],
       richContent: '<p>Our fabric story...</p>',
@@ -79,16 +91,27 @@ describe('PrismaProductRepository (integration)', () => {
     expect(product.status).toBe(PRODUCT_STATUS.DRAFT);
     expect(product.highlights).toEqual(['Moisture-wicking', '4-way stretch']);
     expect(product.richContent).toBe('<p>Our fabric story...</p>');
+    expect(product.placements).toEqual([
+      PRODUCT_PLACEMENT.HOME_HERO,
+      PRODUCT_PLACEMENT.ART_STORY_WALL,
+    ]);
   });
 
   it('finds by id, slug, and sku', async () => {
     expect((await repository.findById(storeId, productId))?.id).toBe(productId);
-    expect((await repository.findBySlug(storeId, 'classic-v-neck-scrub-top'))?.id).toBe(productId);
-    expect((await repository.findBySku(storeId, 'ZA-TOP-001'))?.id).toBe(productId);
+    expect(
+      (await repository.findBySlug(storeId, 'classic-v-neck-scrub-top'))?.id,
+    ).toBe(productId);
+    expect((await repository.findBySku(storeId, 'ZA-TOP-001'))?.id).toBe(
+      productId,
+    );
   });
 
   it('findManyByIds returns only matching products in this store', async () => {
-    const found = await repository.findManyByIds(storeId, [productId, 'missing-id']);
+    const found = await repository.findManyByIds(storeId, [
+      productId,
+      'missing-id',
+    ]);
     expect(found.map((p) => p.id)).toEqual([productId]);
   });
 
@@ -105,14 +128,48 @@ describe('PrismaProductRepository (integration)', () => {
   });
 
   it('filters list() by status', async () => {
-    const active = await repository.list(storeId, { status: PRODUCT_STATUS.ACTIVE });
-    const draft = await repository.list(storeId, { status: PRODUCT_STATUS.DRAFT });
+    const active = await repository.list(storeId, {
+      status: PRODUCT_STATUS.ACTIVE,
+    });
+    const draft = await repository.list(storeId, {
+      status: PRODUCT_STATUS.DRAFT,
+    });
     expect(active.map((p) => p.id)).toContain(productId);
     expect(draft.map((p) => p.id)).not.toContain(productId);
   });
 
+  it('filters list() by homepage placement', async () => {
+    const onHero = await repository.list(storeId, {
+      placement: PRODUCT_PLACEMENT.HOME_HERO,
+    });
+    const onBook = await repository.list(storeId, {
+      placement: PRODUCT_PLACEMENT.ZA_EDIT_BOOK,
+    });
+    expect(onHero.map((p) => p.id)).toContain(productId);
+    expect(onBook.map((p) => p.id)).not.toContain(productId);
+  });
+
+  it('persists a changed placement set via save()', async () => {
+    const product = await repository.findById(storeId, productId);
+    product!.assignPlacements([PRODUCT_PLACEMENT.DOLL_DRESS_UP]);
+    await repository.save(product!);
+
+    const reloaded = await repository.findById(storeId, productId);
+    expect(reloaded?.placements).toEqual([PRODUCT_PLACEMENT.DOLL_DRESS_UP]);
+
+    // Restore for the remaining tests in this file, which assume the original set.
+    reloaded!.assignPlacements([
+      PRODUCT_PLACEMENT.HOME_HERO,
+      PRODUCT_PLACEMENT.ART_STORY_WALL,
+    ]);
+    await repository.save(reloaded!);
+  });
+
   it('filters list() by price range (Epic 9.5 / ADR 0021 §4)', async () => {
-    const inRange = await repository.list(storeId, { priceMin: 40000, priceMax: 60000 });
+    const inRange = await repository.list(storeId, {
+      priceMin: 40000,
+      priceMax: 60000,
+    });
     const tooExpensive = await repository.list(storeId, { priceMin: 100000 });
     const tooCheap = await repository.list(storeId, { priceMax: 1000 });
     expect(inRange.map((p) => p.id)).toContain(productId);
@@ -121,8 +178,12 @@ describe('PrismaProductRepository (integration)', () => {
   });
 
   it('filters list() by variant color/size (Epic 9.5 / ADR 0021 §4)', async () => {
-    const color = await prisma.color.create({ data: { storeId, name: 'Navy', hexCode: '#1A2B4C' } });
-    const size = await prisma.size.create({ data: { storeId, label: 'M', sortOrder: 0 } });
+    const color = await prisma.color.create({
+      data: { storeId, name: 'Navy', hexCode: '#1A2B4C' },
+    });
+    const size = await prisma.size.create({
+      data: { storeId, label: 'M', sortOrder: 0 },
+    });
     colorId = color.id;
     sizeId = size.id;
     await prisma.productVariant.create({
@@ -132,7 +193,9 @@ describe('PrismaProductRepository (integration)', () => {
     const byColor = await repository.list(storeId, { colorId });
     const bySize = await repository.list(storeId, { sizeId });
     const byBoth = await repository.list(storeId, { colorId, sizeId });
-    const byOtherColor = await repository.list(storeId, { colorId: 'no-such-color' });
+    const byOtherColor = await repository.list(storeId, {
+      colorId: 'no-such-color',
+    });
 
     expect(byColor.map((p) => p.id)).toContain(productId);
     expect(bySize.map((p) => p.id)).toContain(productId);
@@ -142,7 +205,9 @@ describe('PrismaProductRepository (integration)', () => {
 
   it('replaces and lists tags', async () => {
     await repository.replaceTags(storeId, productId, [tagAId, tagBId]);
-    expect((await repository.listTagIds(storeId, productId)).sort()).toEqual([tagAId, tagBId].sort());
+    expect((await repository.listTagIds(storeId, productId)).sort()).toEqual(
+      [tagAId, tagBId].sort(),
+    );
 
     await repository.replaceTags(storeId, productId, [tagAId]);
     expect(await repository.listTagIds(storeId, productId)).toEqual([tagAId]);

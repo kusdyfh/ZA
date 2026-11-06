@@ -14,9 +14,11 @@ import {
   EmptyState,
   Heading,
   Input,
+  Select,
   Skeleton,
   useToast,
 } from '@za/ui';
+import { IRAQ_GOVERNORATE_NAMES, citiesForGovernorate } from '@za/shared';
 import { RequireCustomerAuth } from '@/components/require-customer-auth';
 import { ApiError } from '@/lib/api/client';
 import {
@@ -34,7 +36,7 @@ const addressSchema = z.object({
   line2: z.string().optional(),
   city: z.string().min(1, 'City is required'),
   governorate: z.string().min(1, 'Governorate is required'),
-  country: z.string().min(1, 'Country is required'),
+  country: z.literal('Iraq'),
   isDefault: z.boolean().optional(),
 });
 
@@ -54,11 +56,17 @@ function AddressForm({
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<AddressFormValues>({
     resolver: zodResolver(addressSchema),
-    defaultValues,
+    defaultValues: { country: 'Iraq', ...defaultValues },
   });
+
+  const governorate = watch('governorate');
+  const cityOptions = citiesForGovernorate(governorate ?? '');
+  const governorateField = register('governorate');
 
   return (
     <form
@@ -83,20 +91,36 @@ function AddressForm({
       />
       <Input label="Address line 2 (optional)" {...register('line2')} />
       <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="City"
-          errorText={errors.city?.message}
-          {...register('city')}
-        />
-        <Input
+        <Select
           label="Governorate"
+          placeholder="Select a governorate"
           errorText={errors.governorate?.message}
-          {...register('governorate')}
+          options={IRAQ_GOVERNORATE_NAMES.map((name) => ({
+            value: name,
+            label: name,
+          }))}
+          {...governorateField}
+          onChange={(event) => {
+            void governorateField.onChange(event);
+            setValue('city', '');
+          }}
+        />
+        <Select
+          label="City"
+          placeholder={
+            governorate ? 'Select a city' : 'Select a governorate first'
+          }
+          disabled={!governorate}
+          errorText={errors.city?.message}
+          options={cityOptions.map((name) => ({ value: name, label: name }))}
+          {...register('city')}
         />
       </div>
       <Input
         label="Country"
-        errorText={errors.country?.message}
+        value="Iraq"
+        disabled
+        readOnly
         {...register('country')}
       />
       <Checkbox label="Set as default address" {...register('isDefault')} />

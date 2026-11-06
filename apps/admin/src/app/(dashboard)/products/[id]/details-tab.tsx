@@ -3,10 +3,31 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
-import { Badge, Button, Card, CardContent, CardHeader, CardTitle, Checkbox, Input, Select, Textarea, useToast } from '@za/ui';
+import {
+  Badge,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Checkbox,
+  Input,
+  Select,
+  Textarea,
+  useToast,
+} from '@za/ui';
 import { ApiError } from '@/lib/api/client';
-import { useChangeProductStatusMutation, useUpdateProductMutation } from '@/features/products/api';
-import { PRODUCT_STATUSES, type Product, type ProductStatus } from '@/features/products/types';
+import {
+  useChangeProductStatusMutation,
+  useUpdateProductMutation,
+} from '@/features/products/api';
+import {
+  PRODUCT_PLACEMENT_LABELS,
+  PRODUCT_PLACEMENTS,
+  PRODUCT_STATUSES,
+  type Product,
+  type ProductStatus,
+} from '@/features/products/types';
 import { useAllCategoriesQuery } from '@/features/categories/api';
 import { useBrandsQuery } from '@/features/brands/api';
 
@@ -17,13 +38,18 @@ const productSchema = z.object({
   shortDescription: z.string().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0),
-  discountPrice: z.coerce.number().min(0).optional(),
+  discountPrice: z.coerce
+    .number()
+    .min(0)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   categoryId: z.string().min(1, 'Category is required'),
   brandId: z.string().optional(),
   isFeatured: z.boolean().optional(),
   isBestSeller: z.boolean().optional(),
   isNewArrival: z.boolean().optional(),
   isGiftBox: z.boolean().optional(),
+  placements: z.array(z.enum(PRODUCT_PLACEMENTS)).optional(),
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -58,13 +84,16 @@ export function DetailsTab({ product }: { product: Product }) {
       shortDescription: product.shortDescription ?? undefined,
       description: product.description ?? undefined,
       price: Number(product.price),
-      discountPrice: product.discountPrice ? Number(product.discountPrice) : undefined,
+      discountPrice: product.discountPrice
+        ? Number(product.discountPrice)
+        : undefined,
       categoryId: product.categoryId,
       brandId: product.brandId ?? undefined,
       isFeatured: product.isFeatured,
       isBestSeller: product.isBestSeller,
       isNewArrival: product.isNewArrival,
       isGiftBox: product.isGiftBox,
+      placements: product.placements,
     },
   });
 
@@ -73,7 +102,11 @@ export function DetailsTab({ product }: { product: Product }) {
       await updateMutation.mutateAsync({ id: product.id, values });
       showToast({ tone: 'success', title: 'Product updated' });
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not update product', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not update product',
+        description: describeError(error),
+      });
     }
   });
 
@@ -82,7 +115,11 @@ export function DetailsTab({ product }: { product: Product }) {
       await statusMutation.mutateAsync({ id: product.id, status });
       showToast({ tone: 'success', title: `Status changed to ${status}` });
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not change status', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not change status',
+        description: describeError(error),
+      });
     }
   }
 
@@ -109,49 +146,110 @@ export function DetailsTab({ product }: { product: Product }) {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="flex flex-col gap-4" onSubmit={onSubmit} noValidate>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input label="Name" errorText={errors.name?.message} {...register('name')} />
-              <Input label="SKU" errorText={errors.sku?.message} {...register('sku')} />
-            </div>
-            <Input label="Slug" {...register('slug')} />
-            <Textarea label="Short description" {...register('shortDescription')} />
-            <Textarea label="Description" rows={6} {...register('description')} />
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Input label="Price" type="number" step="0.01" errorText={errors.price?.message} {...register('price')} />
-              <Input label="Discount price" type="number" step="0.01" {...register('discountPrice')} />
-            </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Select
-                label="Category"
-                options={(categories?.data ?? []).map((category) => ({ value: category.id, label: category.name }))}
-                errorText={errors.categoryId?.message}
-                {...register('categoryId')}
+      <form onSubmit={onSubmit} noValidate className="flex flex-col gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  label="Name"
+                  errorText={errors.name?.message}
+                  {...register('name')}
+                />
+                <Input
+                  label="SKU"
+                  errorText={errors.sku?.message}
+                  {...register('sku')}
+                />
+              </div>
+              <Input label="Slug" {...register('slug')} />
+              <Textarea
+                label="Short description"
+                {...register('shortDescription')}
               />
-              <Select
-                label="Brand"
-                placeholder="No brand"
-                options={(brands?.data ?? []).map((brand) => ({ value: brand.id, label: brand.name }))}
-                {...register('brandId')}
+              <Textarea
+                label="Description"
+                rows={6}
+                {...register('description')}
               />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  label="Price"
+                  type="number"
+                  step="0.01"
+                  errorText={errors.price?.message}
+                  {...register('price')}
+                />
+                <Input
+                  label="Discount price"
+                  type="number"
+                  step="0.01"
+                  {...register('discountPrice')}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Select
+                  label="Category"
+                  options={(categories?.data ?? []).map((category) => ({
+                    value: category.id,
+                    label: category.name,
+                  }))}
+                  errorText={errors.categoryId?.message}
+                  {...register('categoryId')}
+                />
+                <Select
+                  label="Brand"
+                  placeholder="No brand"
+                  options={(brands?.data ?? []).map((brand) => ({
+                    value: brand.id,
+                    label: brand.name,
+                  }))}
+                  {...register('brandId')}
+                />
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <Checkbox label="Featured" {...register('isFeatured')} />
+                <Checkbox label="Best seller" {...register('isBestSeller')} />
+                <Checkbox label="New arrival" {...register('isNewArrival')} />
+                <Checkbox label="Gift box" {...register('isGiftBox')} />
+              </div>
             </div>
-            <div className="flex flex-wrap gap-4">
-              <Checkbox label="Featured" {...register('isFeatured')} />
-              <Checkbox label="Best seller" {...register('isBestSeller')} />
-              <Checkbox label="New arrival" {...register('isNewArrival')} />
-              <Checkbox label="Gift box" {...register('isGiftBox')} />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Homepage placement</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-3 text-sm text-neutral-500 dark:text-neutral-400">
+              Where on the homepage should this product appear? Pick any number
+              of sections, or none.
+            </p>
+            <div className="flex flex-col gap-3">
+              {PRODUCT_PLACEMENTS.map((placement) => (
+                <Checkbox
+                  key={placement}
+                  label={PRODUCT_PLACEMENT_LABELS[placement]}
+                  value={placement}
+                  {...register('placements')}
+                />
+              ))}
             </div>
-            <Button type="submit" isLoading={updateMutation.isPending} className="self-end">
-              Save changes
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+
+        <Button
+          type="submit"
+          isLoading={updateMutation.isPending}
+          className="self-end"
+        >
+          Save changes
+        </Button>
+      </form>
     </div>
   );
 }

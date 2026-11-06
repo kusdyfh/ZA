@@ -1,3 +1,22 @@
+// Product photos uploaded via the admin's drag-and-drop media feature are
+// served straight off the API at `/uploads/products/...` (apps/api/src/main.ts's
+// `useStaticAssets`), so next/image needs that same origin allow-listed —
+// otherwise it throws "Invalid src prop ... hostname is not configured" and
+// crashes the product detail page for every product with an uploaded photo.
+// Derived from NEXT_PUBLIC_API_URL rather than hardcoded so it tracks
+// whatever origin the API actually runs at (dev, staging, prod) automatically.
+function apiOriginRemotePattern() {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+  if (!apiUrl) return null;
+  const { protocol, hostname, port } = new URL(apiUrl);
+  return {
+    protocol: protocol.replace(':', ''),
+    hostname,
+    ...(port ? { port } : {}),
+    pathname: '/uploads/**',
+  };
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -20,6 +39,7 @@ const nextConfig = {
         protocol: 'https',
         hostname: 'images.za-store.local',
       },
+      ...(apiOriginRemotePattern() ? [apiOriginRemotePattern()] : []),
     ],
   },
 };

@@ -1,4 +1,14 @@
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
+import { PRODUCT_PLACEMENTS } from '../../domain/constants/product-placement.constants';
 
 /** Updates descriptive/merchandising fields only — status changes go through ChangeProductStatusUseCase. */
 export class UpdateProductDto {
@@ -54,6 +64,11 @@ export class UpdateProductDto {
   @IsBoolean()
   @IsOptional()
   isGiftBox?: boolean;
+
+  @IsArray()
+  @IsIn(PRODUCT_PLACEMENTS, { each: true })
+  @IsOptional()
+  placements?: string[];
 
   @IsString()
   @IsOptional()

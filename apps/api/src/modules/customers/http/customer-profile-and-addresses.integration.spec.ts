@@ -19,11 +19,17 @@ describe('Customers: profile + addresses (integration)', () => {
   const testPassword = 'ProfileTest12345';
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     app = moduleRef.createNestApplication();
     app.setGlobalPrefix('v1', { exclude: ['health', 'health/ready'] });
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
     await app.init();
@@ -32,8 +38,15 @@ describe('Customers: profile + addresses (integration)', () => {
 
     const register = await request(server)
       .post('/v1/customers/auth/register')
-      .send({ email: testEmail, password: testPassword, firstName: 'Jane', lastName: 'Doe' });
-    const body = ok<{ accessToken: string; customer: { id: string } }>(register).data;
+      .send({
+        email: testEmail,
+        password: testPassword,
+        firstName: 'Jane',
+        lastName: 'Doe',
+      });
+    const body = ok<{ accessToken: string; customer: { id: string } }>(
+      register,
+    ).data;
     accessToken = body.accessToken;
     customerId = body.customer.id;
   });
@@ -41,9 +54,13 @@ describe('Customers: profile + addresses (integration)', () => {
   afterAll(async () => {
     await prisma.customerAddress.deleteMany({ where: { customerId } });
     await prisma.customerRefreshToken.deleteMany({ where: { customerId } });
-    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+    });
     if (customer) {
-      await prisma.cart.deleteMany({ where: { guestToken: customer.cartToken } });
+      await prisma.cart.deleteMany({
+        where: { guestToken: customer.cartToken },
+      });
     }
     await prisma.customer.deleteMany({ where: { id: customerId } });
     await app.close();
@@ -61,7 +78,9 @@ describe('Customers: profile + addresses (integration)', () => {
       .set('Authorization', `Bearer ${accessToken}`)
       .send({ firstName: 'Janet', lastName: 'Smith', marketingOptIn: true });
     expect(update.status).toBe(200);
-    const updated = ok<{ firstName: string; marketingOptIn: boolean }>(update).data;
+    const updated = ok<{ firstName: string; marketingOptIn: boolean }>(
+      update,
+    ).data;
     expect(updated.firstName).toBe('Janet');
     expect(updated.marketingOptIn).toBe(true);
   });
@@ -139,8 +158,10 @@ describe('Customers: profile + addresses (integration)', () => {
         firstName: 'Other',
         lastName: 'Customer',
       });
-    const otherToken = ok<{ accessToken: string }>(otherRegister).data.accessToken;
-    const otherCustomerId = ok<{ customer: { id: string } }>(otherRegister).data.customer.id;
+    const otherToken = ok<{ accessToken: string }>(otherRegister).data
+      .accessToken;
+    const otherCustomerId = ok<{ customer: { id: string } }>(otherRegister).data
+      .customer.id;
 
     const list = await request(server)
       .get('/v1/customers/me/addresses')
@@ -154,17 +175,23 @@ describe('Customers: profile + addresses (integration)', () => {
         fullName: 'Hacker',
         phone: '+9647700000002',
         line1: 'Nowhere',
-        city: 'Nowhere',
-        governorate: 'Nowhere',
-        country: 'Nowhere',
+        city: 'Baghdad',
+        governorate: 'Baghdad',
+        country: 'Iraq',
       });
     expect(response.status).toBe(404);
     expect(err(response).error.code).toBe('ADDRESS_NOT_FOUND');
 
-    await prisma.customerRefreshToken.deleteMany({ where: { customerId: otherCustomerId } });
-    const otherCustomer = await prisma.customer.findUnique({ where: { id: otherCustomerId } });
+    await prisma.customerRefreshToken.deleteMany({
+      where: { customerId: otherCustomerId },
+    });
+    const otherCustomer = await prisma.customer.findUnique({
+      where: { id: otherCustomerId },
+    });
     if (otherCustomer) {
-      await prisma.cart.deleteMany({ where: { guestToken: otherCustomer.cartToken } });
+      await prisma.cart.deleteMany({
+        where: { guestToken: otherCustomer.cartToken },
+      });
     }
     await prisma.customer.deleteMany({ where: { id: otherCustomerId } });
   });

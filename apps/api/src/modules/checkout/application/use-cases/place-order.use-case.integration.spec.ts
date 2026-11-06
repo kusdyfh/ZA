@@ -21,10 +21,14 @@ import { PrismaShippingMethodRepository } from '../../../shipping/infrastructure
 import { PrismaShippingRateRepository } from '../../../shipping/infrastructure/repositories/prisma-shipping-rate.repository';
 import { PrismaShipmentRepository } from '../../../shipping/infrastructure/repositories/prisma-shipment.repository';
 import { QuoteShippingRateUseCase } from '../../../shipping/application/use-cases/quote-shipping-rate.use-case';
+import { PrismaPhoneVerificationCodeRepository } from '../../infrastructure/repositories/prisma-phone-verification-code.repository';
 import { ORDER_STATUS } from '../../../orders/domain/constants/order-status.constants';
 import { PAYMENT_METHOD } from '../../../orders/domain/constants/payment-method.constants';
 import { PAYMENT_STATUS } from '../../../orders/domain/constants/payment-status.constants';
-import { PlaceOrderUseCase, type PlaceOrderInput } from './place-order.use-case';
+import {
+  PlaceOrderUseCase,
+  type PlaceOrderInput,
+} from './place-order.use-case';
 import { ItemUnavailableAtCheckoutError } from '../../domain/errors/checkout.errors';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
 
@@ -58,10 +62,15 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
 
   beforeAll(async () => {
     const store = await prisma.store.create({
-      data: { name: 'Place Order Integration Store', domain: `test-${randomUUID()}.local` },
+      data: {
+        name: 'Place Order Integration Store',
+        domain: `test-${randomUUID()}.local`,
+      },
     });
     storeId = store.id;
-    storeContext = { getCurrentStoreId: () => Promise.resolve(storeId) } as unknown as StoreContext;
+    storeContext = {
+      getCurrentStoreId: () => Promise.resolve(storeId),
+    } as unknown as StoreContext;
 
     const category = await prisma.category.create({
       data: { storeId, name: 'Scrubs', slug: `scrubs-${randomUUID()}` },
@@ -78,24 +87,47 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
       },
     });
     const variant = await prisma.productVariant.create({
-      data: { storeId, productId: product.id, sku: `TEST-VARIANT-${randomUUID()}` },
+      data: {
+        storeId,
+        productId: product.id,
+        sku: `TEST-VARIANT-${randomUUID()}`,
+      },
     });
     variantId = variant.id;
 
     const warehouse = await prisma.warehouse.create({
-      data: { storeId, name: 'Main Warehouse', code: `MAIN-${randomUUID()}`, isDefault: true },
+      data: {
+        storeId,
+        name: 'Main Warehouse',
+        code: `MAIN-${randomUUID()}`,
+        isDefault: true,
+      },
     });
     warehouseId = warehouse.id;
 
     const shippingMethod = await prisma.shippingMethod.create({
-      data: { storeId, name: `Standard-${randomUUID()}`, minDays: 3, maxDays: 5 },
+      data: {
+        storeId,
+        name: `Standard-${randomUUID()}`,
+        minDays: 3,
+        maxDays: 5,
+      },
     });
     shippingMethodId = shippingMethod.id;
     const shippingZone = await prisma.shippingZone.create({
-      data: { storeId, name: `Central-${randomUUID()}`, governorates: ['Baghdad'] },
+      data: {
+        storeId,
+        name: `Central-${randomUUID()}`,
+        governorates: ['Baghdad'],
+      },
     });
     await prisma.shippingRate.create({
-      data: { storeId, zoneId: shippingZone.id, methodId: shippingMethodId, fee: '5000' },
+      data: {
+        storeId,
+        zoneId: shippingZone.id,
+        methodId: shippingMethodId,
+        fee: '5000',
+      },
     });
 
     const productVariants = new PrismaProductVariantRepository(prisma);
@@ -110,7 +142,12 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
     const shippingZones = new PrismaShippingZoneRepository(prisma);
     const shippingMethods = new PrismaShippingMethodRepository(prisma);
     const shippingRates = new PrismaShippingRateRepository(prisma);
-    const quoteShippingRate = new QuoteShippingRateUseCase(shippingZones, shippingRates, shippingMethods, storeContext);
+    const quoteShippingRate = new QuoteShippingRateUseCase(
+      shippingZones,
+      shippingRates,
+      shippingMethods,
+      storeContext,
+    );
 
     const createStockReservation = new CreateStockReservationUseCase(
       reservations,
@@ -118,10 +155,24 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
       productVariants,
       storeContext,
     );
-    const confirmStockReservation = new ConfirmStockReservationUseCase(reservations);
-    const releaseStockReservation = new ReleaseStockReservationUseCase(reservations);
+    const confirmStockReservation = new ConfirmStockReservationUseCase(
+      reservations,
+    );
+    const releaseStockReservation = new ReleaseStockReservationUseCase(
+      reservations,
+    );
     const getStockReservation = new GetStockReservationUseCase(reservations);
-    const processReturn = new ProcessReturnUseCase(variantStocks, warehouses, productVariants, storeContext);
+    const processReturn = new ProcessReturnUseCase(
+      variantStocks,
+      warehouses,
+      productVariants,
+      storeContext,
+    );
+
+    const phoneVerificationCodes = new PrismaPhoneVerificationCodeRepository(
+      prisma,
+      storeContext,
+    );
 
     placeOrder = new PlaceOrderUseCase(
       carts,
@@ -129,18 +180,27 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
       products,
       orders,
       shipments,
+      phoneVerificationCodes,
       createStockReservation,
       confirmStockReservation,
       releaseStockReservation,
       quoteShippingRate,
       storeContext,
     );
-    cancelOrder = new CancelOrderUseCase(orders, storeContext, getStockReservation, releaseStockReservation, processReturn);
+    cancelOrder = new CancelOrderUseCase(
+      orders,
+      storeContext,
+      getStockReservation,
+      releaseStockReservation,
+      processReturn,
+    );
   });
 
   afterAll(async () => {
     await prisma.orderNote.deleteMany({ where: { order: { storeId } } });
-    await prisma.orderStatusHistory.deleteMany({ where: { order: { storeId } } });
+    await prisma.orderStatusHistory.deleteMany({
+      where: { order: { storeId } },
+    });
     await prisma.orderItem.deleteMany({ where: { order: { storeId } } });
     await prisma.order.deleteMany({ where: { storeId } });
     await prisma.stockReservation.deleteMany({ where: { variantId } });
@@ -148,6 +208,7 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
     await prisma.variantStock.deleteMany({ where: { variantId } });
     await prisma.cartItem.deleteMany({ where: { cart: { storeId } } });
     await prisma.cart.deleteMany({ where: { storeId } });
+    await prisma.phoneVerificationCode.deleteMany({ where: { storeId } });
     await prisma.warehouse.deleteMany({ where: { storeId } });
     await prisma.productVariant.deleteMany({ where: { storeId } });
     await prisma.product.deleteMany({ where: { storeId } });
@@ -167,8 +228,24 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
   }
 
   async function currentStock(): Promise<number> {
-    const stock = await variantStocks.findByVariantAndWarehouse(variantId, warehouseId);
+    const stock = await variantStocks.findByVariantAndWarehouse(
+      variantId,
+      warehouseId,
+    );
     return stock?.quantity ?? 0;
+  }
+
+  /** PlaceOrderUseCase requires a fresh, successful WhatsApp verification for the checkout phone — consumed on order creation, so each test needs its own. */
+  async function seedVerifiedPhone(phone = '+9647700000000'): Promise<void> {
+    await prisma.phoneVerificationCode.create({
+      data: {
+        storeId,
+        phone,
+        codeHash: 'test-code-hash',
+        expiresAt: new Date(Date.now() + 10 * 60_000),
+        verifiedAt: new Date(),
+      },
+    });
   }
 
   it('places a full order end-to-end: reserves stock, snapshots pricing, auto-confirms COD, decrements real stock, clears the cart', async () => {
@@ -176,6 +253,7 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
     const guestToken = `guest-${randomUUID()}`;
     const cart = await carts.findOrCreateByToken(storeId, guestToken);
     await carts.addItem(cart.id, variantId, 2);
+    await seedVerifiedPhone();
 
     const order = await placeOrder.execute(validCheckoutInput(guestToken));
 
@@ -183,7 +261,9 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
     expect(order.paymentStatus).toBe(PAYMENT_STATUS.AWAITING_COLLECTION);
     expect(order.items).toHaveLength(1);
     expect(order.items[0]!.quantity).toBe(2);
-    expect(order.items[0]!.productNameSnapshot).toBe('Classic V-Neck Scrub Top');
+    expect(order.items[0]!.productNameSnapshot).toBe(
+      'Classic V-Neck Scrub Top',
+    );
     expect(order.subtotal).toBe(order.items[0]!.lineTotal);
 
     expect(await currentStock()).toBe(8);
@@ -197,6 +277,7 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
     const guestToken = `guest-${randomUUID()}`;
     const cart = await carts.findOrCreateByToken(storeId, guestToken);
     await carts.addItem(cart.id, variantId, 1);
+    await seedVerifiedPhone();
 
     const order = await placeOrder.execute(validCheckoutInput(guestToken));
     expect(order.status).toBe(ORDER_STATUS.CONFIRMED);
@@ -214,7 +295,10 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
   });
 
   it('proves no overselling: two simultaneous checkouts for the last unit — exactly one succeeds', async () => {
-    await prisma.variantStock.updateMany({ where: { variantId, warehouseId }, data: { quantity: 1 } });
+    await prisma.variantStock.updateMany({
+      where: { variantId, warehouseId },
+      data: { quantity: 1 },
+    });
     expect(await currentStock()).toBe(1);
 
     const guestTokenA = `guest-race-a-${randomUUID()}`;
@@ -223,6 +307,7 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
     const cartB = await carts.findOrCreateByToken(storeId, guestTokenB);
     await carts.addItem(cartA.id, variantId, 1);
     await carts.addItem(cartB.id, variantId, 1);
+    await seedVerifiedPhone();
 
     const results = await Promise.allSettled([
       placeOrder.execute(validCheckoutInput(guestTokenA)),
@@ -234,7 +319,9 @@ describe('PlaceOrderUseCase + CancelOrderUseCase (integration)', () => {
 
     expect(fulfilled).toHaveLength(1);
     expect(rejected).toHaveLength(1);
-    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(ItemUnavailableAtCheckoutError);
+    expect((rejected[0] as PromiseRejectedResult).reason).toBeInstanceOf(
+      ItemUnavailableAtCheckoutError,
+    );
     expect(await currentStock()).toBe(0);
   });
 });

@@ -18,15 +18,22 @@ import {
   Skeleton,
   useToast,
 } from '@za/ui';
-import { cn, formatCurrency } from '@za/shared';
+import {
+  cn,
+  formatCurrency,
+  IRAQ_GOVERNORATE_NAMES,
+  citiesForGovernorate,
+} from '@za/shared';
 import { ApiError } from '@/lib/api/client';
 import { useCustomerAuth } from '@/lib/auth/auth-context';
 import { useCartToken } from '@/lib/cart/use-cart-token';
 import { useCartQuery } from '@/features/cart/api';
 import { useAddressesQuery } from '@/features/addresses/api';
 import {
+  useConfirmPhoneVerificationMutation,
   useInitiateCardCheckoutMutation,
   usePlaceOrderMutation,
+  useRequestPhoneVerificationMutation,
 } from '@/features/orders/api';
 import { useAutoShippingMethod } from '@/features/shipping/api';
 
@@ -34,8 +41,9 @@ const checkoutSchema = z.object({
   customerName: z.string().min(1, 'Full name is required'),
   customerEmail: z
     .string()
-    .min(1, 'Email is required')
-    .email('Enter a valid email'),
+    .email('Enter a valid email')
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   customerPhone: z.string().min(1, 'Phone number is required'),
   shippingFullName: z.string().min(1, 'Full name is required'),
   shippingPhone: z.string().min(1, 'Phone number is required'),
@@ -43,7 +51,7 @@ const checkoutSchema = z.object({
   shippingLine2: z.string().optional(),
   shippingCity: z.string().min(1, 'City is required'),
   shippingGovernorate: z.string().min(1, 'Governorate is required'),
-  shippingCountry: z.string().min(1, 'Country is required'),
+  shippingCountry: z.literal('Iraq'),
   // Chosen automatically (see useAutoShippingMethod); there is no field for it.
   shippingMethodId: z
     .string()
@@ -70,6 +78,10 @@ export default function CheckoutPage() {
   const { data: addresses } = useAddressesQuery();
   const placeOrderMutation = usePlaceOrderMutation();
   const initiateCardCheckoutMutation = useInitiateCardCheckoutMutation();
+  const requestPhoneVerificationMutation =
+    useRequestPhoneVerificationMutation();
+  const confirmPhoneVerificationMutation =
+    useConfirmPhoneVerificationMutation();
   const { showToast } = useToast();
 
   const {
@@ -92,7 +104,69 @@ export default function CheckoutPage() {
   });
 
   const shippingGovernorate = watch('shippingGovernorate');
+  const customerPhone = watch('customerPhone');
   const paymentMethod = watch('paymentMethod');
+
+  // The checkout contact phone is required and must be verified over
+  // WhatsApp before the order can be placed (product decision). Tracked
+  // against the exact string a code was sent/confirmed for — editing the
+  // number after verifying it resets this, since the verification no
+  // longer covers whatever's in the field now.
+  const [codeSentFor, setCodeSentFor] = useState<string | null>(null);
+  const [verifiedPhone, setVerifiedPhone] = useState<string | null>(null);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [devCode, setDevCode] = useState<string | null>(null);
+  const isPhoneVerified =
+    verifiedPhone !== null && verifiedPhone === customerPhone;
+
+  useEffect(() => {
+    if (verifiedPhone && verifiedPhone !== customerPhone) {
+      setVerifiedPhone(null);
+    }
+    if (codeSentFor && codeSentFor !== customerPhone) {
+      setCodeSentFor(null);
+      setVerificationCode('');
+      setDevCode(null);
+    }
+  }, [customerPhone, verifiedPhone, codeSentFor]);
+
+  async function handleSendCode() {
+    if (!customerPhone) return;
+    try {
+      const result =
+        await requestPhoneVerificationMutation.mutateAsync(customerPhone);
+      setCodeSentFor(customerPhone);
+      setDevCode(result.code ?? null);
+      showToast({
+        tone: 'success',
+        title: 'Verification code sent on WhatsApp',
+      });
+    } catch (error) {
+      showToast({
+        tone: 'danger',
+        title: 'Could not send verification code',
+        description: describeError(error),
+      });
+    }
+  }
+
+  async function handleVerifyCode() {
+    if (!customerPhone || !verificationCode) return;
+    try {
+      await confirmPhoneVerificationMutation.mutateAsync({
+        phone: customerPhone,
+        code: verificationCode,
+      });
+      setVerifiedPhone(customerPhone);
+      showToast({ tone: 'success', title: 'Phone number verified' });
+    } catch (error) {
+      showToast({
+        tone: 'danger',
+        title: 'Could not verify code',
+        description: describeError(error),
+      });
+    }
+  }
 
   // Wait for a pause in typing before asking for quotes, one request per method.
   const [typedGovernorate, setTypedGovernorate] = useState('');
@@ -123,6 +197,9 @@ export default function CheckoutPage() {
     }
   }, [customer, setValue]);
 
+  const cityOptions = citiesForGovernorate(shippingGovernorate ?? '');
+  const shippingGovernorateField = register('shippingGovernorate');
+
   function applyAddress(addressId: string) {
     const address = addresses?.find((item) => item.id === addressId);
     if (!address) return;
@@ -130,17 +207,31 @@ export default function CheckoutPage() {
     setValue('shippingPhone', address.phone);
     setValue('shippingLine1', address.line1);
     setValue('shippingLine2', address.line2 ?? '');
-    setValue('shippingCity', address.city);
     setValue('shippingGovernorate', address.governorate);
-    setValue('shippingCountry', address.country);
+    setValue('shippingCity', address.city);
   }
 
   const onSubmit = handleSubmit(async (values) => {
+    if (!isPhoneVerified) {
+      showToast({
+        tone: 'danger',
+        title: 'Verify your phone number',
+        description:
+          'Send and confirm the WhatsApp code before placing the order.',
+      });
+      return;
+    }
     try {
       if (values.paymentMethod === 'CARD') {
+        // Unreachable via the UI — the CARD radio is disabled (product
+        // decision, see the Payment card below) — kept type-correct rather
+        // than deleted, since the backend/Stripe integration it would call
+        // is untouched. `customerEmail` is optional at checkout generally
+        // but Stripe still wants one for the receipt.
         const origin = window.location.origin;
         const session = await initiateCardCheckoutMutation.mutateAsync({
           ...values,
+          customerEmail: values.customerEmail ?? '',
           guestToken: cartToken,
           successUrl: `${origin}/checkout/payment-result?status=success`,
           cancelUrl: `${origin}/checkout?status=cancelled`,
@@ -228,16 +319,65 @@ export default function CheckoutPage() {
                   {...register('customerName')}
                 />
                 <Input
-                  label="Email"
+                  label="Email (optional)"
                   type="email"
                   errorText={errors.customerEmail?.message}
                   {...register('customerEmail')}
                 />
-                <Input
-                  label="Phone"
-                  errorText={errors.customerPhone?.message}
-                  {...register('customerPhone')}
-                />
+                <div className="flex items-end gap-2">
+                  <Input
+                    label="Phone"
+                    helperText="e.g. 07700000000"
+                    errorText={errors.customerPhone?.message}
+                    className="flex-1"
+                    {...register('customerPhone')}
+                  />
+                  {isPhoneVerified ? (
+                    <span className="text-success-500 flex h-10 items-center gap-1 whitespace-nowrap px-1 text-sm font-medium">
+                      ✓ Verified
+                    </span>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      isLoading={requestPhoneVerificationMutation.isPending}
+                      disabled={!customerPhone}
+                      onClick={handleSendCode}
+                      className="h-10 whitespace-nowrap"
+                    >
+                      {codeSentFor === customerPhone
+                        ? 'Resend code'
+                        : 'Send code'}
+                    </Button>
+                  )}
+                </div>
+
+                {!isPhoneVerified && codeSentFor === customerPhone && (
+                  <div className="flex items-end gap-2">
+                    <Input
+                      label="WhatsApp code"
+                      helperText={
+                        devCode
+                          ? `Dev mode — code: ${devCode} (no WhatsApp account configured yet)`
+                          : 'Sent to your phone over WhatsApp'
+                      }
+                      value={verificationCode}
+                      onChange={(event) =>
+                        setVerificationCode(event.target.value)
+                      }
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      isLoading={confirmPhoneVerificationMutation.isPending}
+                      disabled={!verificationCode}
+                      onClick={handleVerifyCode}
+                      className="bg-brand-plum text-brand-paper hover:bg-brand-berry h-10 whitespace-nowrap"
+                    >
+                      Verify
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -279,20 +419,39 @@ export default function CheckoutPage() {
                   {...register('shippingLine2')}
                 />
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                  <Input
-                    label="City"
-                    errorText={errors.shippingCity?.message}
-                    {...register('shippingCity')}
-                  />
-                  <Input
+                  <Select
                     label="Governorate"
+                    placeholder="Select a governorate"
                     errorText={
                       errors.shippingGovernorate?.message ??
                       (isDeliveryUnavailable
                         ? "We don't currently deliver to that governorate."
                         : errors.shippingMethodId?.message)
                     }
-                    {...register('shippingGovernorate')}
+                    options={IRAQ_GOVERNORATE_NAMES.map((name) => ({
+                      value: name,
+                      label: name,
+                    }))}
+                    {...shippingGovernorateField}
+                    onChange={(event) => {
+                      void shippingGovernorateField.onChange(event);
+                      setValue('shippingCity', '');
+                    }}
+                  />
+                  <Select
+                    label="City"
+                    placeholder={
+                      shippingGovernorate
+                        ? 'Select a city'
+                        : 'Select a governorate first'
+                    }
+                    disabled={!shippingGovernorate}
+                    errorText={errors.shippingCity?.message}
+                    options={cityOptions.map((name) => ({
+                      value: name,
+                      label: name,
+                    }))}
+                    {...register('shippingCity')}
                   />
                 </div>
                 {isQuoteLoading && (
@@ -302,7 +461,9 @@ export default function CheckoutPage() {
                 )}
                 <Input
                   label="Country"
-                  errorText={errors.shippingCountry?.message}
+                  value="Iraq"
+                  disabled
+                  readOnly
                   {...register('shippingCountry')}
                 />
               </CardContent>
@@ -322,21 +483,22 @@ export default function CheckoutPage() {
                   />
                   Cash on Delivery
                 </label>
-                <label className="text-brand-ink flex items-center gap-2 text-sm dark:text-neutral-300">
+                {/* Card payment is disabled for now (product decision) — kept
+                    visible but unselectable so customers know it's coming,
+                    rather than removed; the backend/Stripe integration this
+                    option would call is untouched. */}
+                <label className="flex items-center gap-2 text-sm text-neutral-400 dark:text-neutral-600">
                   <input
                     type="radio"
                     value="CARD"
-                    className="accent-brand-plum h-4 w-4"
-                    {...register('paymentMethod')}
+                    disabled
+                    className="h-4 w-4 cursor-not-allowed"
                   />
-                  Pay by card (Stripe)
+                  Pay by card
+                  <span className="rounded-brand-pill bg-neutral-200 px-2 py-0.5 text-xs font-medium text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
+                    Coming soon
+                  </span>
                 </label>
-                {paymentMethod === 'CARD' && (
-                  <p className="text-brand-mauve text-xs dark:text-neutral-400">
-                    You&apos;ll be redirected to a secure Stripe Checkout page
-                    to complete your payment.
-                  </p>
-                )}
               </CardContent>
             </Card>
 

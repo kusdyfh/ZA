@@ -9,7 +9,7 @@ export class OrderResponseDto {
   status!: string;
 
   customerNameSnapshot!: string;
-  customerEmailSnapshot!: string;
+  customerEmailSnapshot!: string | null;
   customerPhoneSnapshot!: string;
 
   shippingFullName!: string;
@@ -64,9 +64,15 @@ export class OrderResponseDto {
     dto.paymentStatus = order.paymentStatus;
     dto.shippingMethodId = order.shippingMethodId;
     dto.cancelReason = order.cancelReason;
-    dto.items = order.items.map((item) => OrderItemResponseDto.fromDomain(item));
-    dto.statusHistory = order.statusHistory.map((entry) => OrderStatusHistoryResponseDto.fromDomain(entry));
-    dto.notes = order.notes.map((note) => OrderNoteResponseDto.fromDomain(note));
+    dto.items = order.items.map((item) =>
+      OrderItemResponseDto.fromDomain(item),
+    );
+    dto.statusHistory = order.statusHistory.map((entry) =>
+      OrderStatusHistoryResponseDto.fromDomain(entry),
+    );
+    dto.notes = order.notes.map((note) =>
+      OrderNoteResponseDto.fromDomain(note),
+    );
     dto.createdAt = order.createdAt;
     dto.updatedAt = order.updatedAt;
     return dto;

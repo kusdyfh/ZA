@@ -14,6 +14,8 @@ import {
   type ColorRepository,
 } from '../../domain/repositories/color.repository';
 import { ProductPolicy } from '../../domain/policies/product-policy';
+import { PRODUCT_MEDIA_TYPE } from '../../domain/constants/product-media-type.constants';
+import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import {
   ColorNotFoundError,
   ProductNotFoundError,
@@ -31,7 +33,11 @@ export interface SetProductMediaInput {
  * cover, cover must be an image, every image has alt text, and — if the
  * product is currently Active — the new set must still include a cover.
  * An entry may name the `colorId` it shows (the storefront gallery filters
- * on it); every referenced color must exist in the current store.
+ * on it); every referenced color must exist in the current store. Also
+ * keeps `Product.seo.ogImageUrl` synced to the cover image per
+ * docs/product/03-PRODUCTS.md §SEO ("defaults to the primary product
+ * image") — list/grid views only carry `ogImageUrl`, not the full media
+ * set, so this is what actually makes a product's photo show up there.
  */
 @Injectable()
 export class SetProductMediaUseCase {
@@ -67,5 +73,20 @@ export class SetProductMediaUseCase {
     }
 
     await this.media.replaceForProduct(input.productId, input.media);
+
+    const coverImage = input.media.find(
+      (item) => item.isCover && item.type === PRODUCT_MEDIA_TYPE.IMAGE,
+    );
+    const ogImageUrl = coverImage?.url ?? null;
+    if (ogImageUrl !== product.seo.ogImageUrl) {
+      product.updateSeo(
+        SeoMetadata.create({
+          metaTitle: product.seo.metaTitle,
+          metaDescription: product.seo.metaDescription,
+          ogImageUrl,
+        }),
+      );
+      await this.products.save(product);
+    }
   }
 }

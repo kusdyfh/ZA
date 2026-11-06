@@ -51,3 +51,46 @@ export class ItemUnavailableAtCheckoutError extends DomainError {
     );
   }
 }
+
+export class InvalidPhoneNumberError extends DomainError {
+  readonly code = 'INVALID_PHONE_NUMBER';
+  constructor() {
+    super('Enter a valid Iraqi phone number (e.g. 07XXXXXXXXX).');
+  }
+}
+
+export class VerificationCodeRequestTooSoonError extends DomainError {
+  readonly code = 'VERIFICATION_CODE_REQUEST_TOO_SOON';
+  constructor() {
+    super('A code was already sent — wait a bit before requesting another.');
+  }
+}
+
+export class InvalidVerificationCodeError extends DomainError {
+  readonly code = 'INVALID_VERIFICATION_CODE';
+  constructor() {
+    super('That code is incorrect.');
+  }
+}
+
+export class VerificationCodeExpiredError extends DomainError {
+  readonly code = 'VERIFICATION_CODE_EXPIRED';
+  constructor() {
+    super('That code has expired — request a new one.');
+  }
+}
+
+export class TooManyVerificationAttemptsError extends DomainError {
+  readonly code = 'TOO_MANY_VERIFICATION_ATTEMPTS';
+  constructor() {
+    super('Too many incorrect attempts — request a new code.');
+  }
+}
+
+/** Surfaced at order placement when `customerPhone` has no recent, successful WhatsApp verification. */
+export class PhoneNotVerifiedError extends DomainError {
+  readonly code = 'PHONE_NOT_VERIFIED';
+  constructor() {
+    super('Verify your phone number before placing the order.');
+  }
+}

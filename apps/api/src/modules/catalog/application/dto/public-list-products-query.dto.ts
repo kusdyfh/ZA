@@ -1,6 +1,14 @@
 import { Transform, Type } from 'class-transformer';
-import { IsBoolean, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 import { ListQueryDto } from '../../../../shared/pagination/list-query.dto';
+import { PRODUCT_PLACEMENTS } from '../../domain/constants/product-placement.constants';
 
 const toBoolean = ({ value }: { value: unknown }): unknown =>
   value === 'true' ? true : value === 'false' ? false : value;
@@ -42,6 +50,11 @@ export class PublicListProductsQueryDto extends ListQueryDto {
   @Transform(toBoolean)
   @IsBoolean()
   isNewArrival?: boolean;
+
+  /** Matches products curated into this homepage section — see ProductPlacement. */
+  @IsOptional()
+  @IsIn(PRODUCT_PLACEMENTS)
+  placement?: string;
 
   @IsOptional()
   @Type(() => Number)

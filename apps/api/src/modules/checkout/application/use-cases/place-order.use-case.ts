@@ -1,12 +1,27 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ActorType } from '@za/types';
+import { normalizeIraqiPhone } from '@za/shared';
 import { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { CART_REPOSITORY, type CartRepository } from '../../domain/repositories/cart.repository';
+import {
+  CART_REPOSITORY,
+  type CartRepository,
+} from '../../domain/repositories/cart.repository';
+import {
+  PHONE_VERIFICATION_CODE_REPOSITORY,
+  type PhoneVerificationCodeRepository,
+} from '../../domain/repositories/phone-verification-code.repository';
+import {
+  InvalidPhoneNumberError,
+  PhoneNotVerifiedError,
+} from '../../domain/errors/checkout.errors';
 import {
   PRODUCT_VARIANT_REPOSITORY,
   type ProductVariantRepository,
 } from '../../../catalog/domain/repositories/product-variant.repository';
-import { PRODUCT_REPOSITORY, type ProductRepository } from '../../../catalog/domain/repositories/product.repository';
+import {
+  PRODUCT_REPOSITORY,
+  type ProductRepository,
+} from '../../../catalog/domain/repositories/product.repository';
 import { CreateStockReservationUseCase } from '../../../inventory/application/use-cases/create-stock-reservation.use-case';
 import { ConfirmStockReservationUseCase } from '../../../inventory/application/use-cases/confirm-stock-reservation.use-case';
 import { ReleaseStockReservationUseCase } from '../../../inventory/application/use-cases/release-stock-reservation.use-case';
@@ -22,13 +37,20 @@ import { PAYMENT_STATUS } from '../../../orders/domain/constants/payment-status.
 import type { PaymentMethodValue } from '../../../orders/domain/constants/payment-method.constants';
 import { OrderPolicy } from '../../../orders/domain/policies/order-policy';
 import { QuoteShippingRateUseCase } from '../../../shipping/application/use-cases/quote-shipping-rate.use-case';
-import { SHIPMENT_REPOSITORY, type ShipmentRepository } from '../../../shipping/domain/repositories/shipment.repository';
-import { EmptyCartError, ItemUnavailableAtCheckoutError } from '../../domain/errors/checkout.errors';
+import {
+  SHIPMENT_REPOSITORY,
+  type ShipmentRepository,
+} from '../../../shipping/domain/repositories/shipment.repository';
+import {
+  EmptyCartError,
+  ItemUnavailableAtCheckoutError,
+} from '../../domain/errors/checkout.errors';
 
 export interface PlaceOrderInput {
   guestToken: string;
   customerName: string;
-  customerEmail: string;
+  /** Optional at checkout (product decision) — phone is required instead. */
+  customerEmail?: string | null;
   customerPhone: string;
   shippingFullName: string;
   shippingPhone: string;
@@ -68,10 +90,13 @@ const SYSTEM_ACTOR = { actorId: null, actorType: ActorType.SYSTEM };
 export class PlaceOrderUseCase {
   constructor(
     @Inject(CART_REPOSITORY) private readonly carts: CartRepository,
-    @Inject(PRODUCT_VARIANT_REPOSITORY) private readonly productVariants: ProductVariantRepository,
+    @Inject(PRODUCT_VARIANT_REPOSITORY)
+    private readonly productVariants: ProductVariantRepository,
     @Inject(PRODUCT_REPOSITORY) private readonly products: ProductRepository,
     @Inject(ORDER_REPOSITORY) private readonly orders: OrderRepository,
     @Inject(SHIPMENT_REPOSITORY) private readonly shipments: ShipmentRepository,
+    @Inject(PHONE_VERIFICATION_CODE_REPOSITORY)
+    private readonly phoneVerificationCodes: PhoneVerificationCodeRepository,
     private readonly createStockReservation: CreateStockReservationUseCase,
     private readonly confirmStockReservation: ConfirmStockReservationUseCase,
     private readonly releaseStockReservation: ReleaseStockReservationUseCase,
@@ -96,8 +121,25 @@ export class PlaceOrderUseCase {
       country: input.shippingCountry,
     });
 
+    // Phone is required and WhatsApp-verified before an order can be
+    // placed (product decision — email is optional instead). Normalized
+    // to E.164 so it matches exactly what RequestPhoneVerificationUseCase/
+    // ConfirmPhoneVerificationUseCase stored the code under.
+    const normalizedPhone = normalizeIraqiPhone(input.customerPhone);
+    if (!normalizedPhone) {
+      throw new InvalidPhoneNumberError();
+    }
+    const verification =
+      await this.phoneVerificationCodes.findLatestByPhone(normalizedPhone);
+    if (!verification || !verification.isUsableForOrder()) {
+      throw new PhoneNotVerifiedError();
+    }
+
     const storeId = await this.storeContext.getCurrentStoreId();
-    const cart = await this.carts.findOrCreateByToken(storeId, input.guestToken);
+    const cart = await this.carts.findOrCreateByToken(
+      storeId,
+      input.guestToken,
+    );
     if (cart.isEmpty) {
       throw new EmptyCartError();
     }
@@ -108,8 +150,13 @@ export class PlaceOrderUseCase {
     let currencyCode = 'IQD';
 
     for (const item of cart.items) {
-      const variant = await this.productVariants.findById(storeId, item.variantId);
-      const product = variant ? await this.products.findById(storeId, variant.productId) : null;
+      const variant = await this.productVariants.findById(
+        storeId,
+        item.variantId,
+      );
+      const product = variant
+        ? await this.products.findById(storeId, variant.productId)
+        : null;
       if (!variant || !product) {
         continue;
       }
@@ -131,7 +178,8 @@ export class PlaceOrderUseCase {
       }
       createdReservationIds.push(reservationId);
 
-      const effectivePrice = variant.priceOverride ?? product.discountPrice ?? product.price;
+      const effectivePrice =
+        variant.priceOverride ?? product.discountPrice ?? product.price;
       currencyCode = effectivePrice.currency;
       const unitPrice = effectivePrice.toNumber();
       const lineTotal = Math.round(unitPrice * item.quantity * 100) / 100;
@@ -161,14 +209,19 @@ export class PlaceOrderUseCase {
       discountTotal,
     });
     const shippingFee = rateQuote.fee;
-    const total = OrderPolicy.computeTotal({ subtotal, discountTotal, shippingFee, taxTotal });
+    const total = OrderPolicy.computeTotal({
+      subtotal,
+      discountTotal,
+      shippingFee,
+      taxTotal,
+    });
 
     let order = await this.orders.create({
       storeId,
       orderNumber: OrderPolicy.generateOrderNumber(),
       customerNameSnapshot: input.customerName,
-      customerEmailSnapshot: input.customerEmail,
-      customerPhoneSnapshot: input.customerPhone,
+      customerEmailSnapshot: input.customerEmail?.trim() || null,
+      customerPhoneSnapshot: normalizedPhone,
       shippingFullName: input.shippingFullName,
       shippingPhone: input.shippingPhone,
       shippingLine1: input.shippingLine1,
@@ -195,7 +248,10 @@ export class PlaceOrderUseCase {
     // actually collected until delivery; VerifyManualPaymentUseCase closes
     // that gap.
     for (const reservationId of createdReservationIds) {
-      await this.confirmStockReservation.execute({ reservationId, actor: SYSTEM_ACTOR });
+      await this.confirmStockReservation.execute({
+        reservationId,
+        actor: SYSTEM_ACTOR,
+      });
     }
     order = await this.orders.changeStatus(
       order.id,
@@ -205,9 +261,17 @@ export class PlaceOrderUseCase {
       { paymentStatus: PAYMENT_STATUS.AWAITING_COLLECTION },
     );
 
-    await this.shipments.create({ storeId, orderId: order.id, shippingMethodId: input.shippingMethodId });
+    await this.shipments.create({
+      storeId,
+      orderId: order.id,
+      shippingMethodId: input.shippingMethodId,
+    });
 
     await this.carts.clear(cart.id);
+
+    // Single-use: this exact verification can't be replayed onto another order.
+    verification.markConsumed();
+    await this.phoneVerificationCodes.save(verification);
 
     return order;
   }

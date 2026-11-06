@@ -5,7 +5,15 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { Button, DataTable, Dialog, ErrorState, Input, Pagination, useToast } from '@za/ui';
+import {
+  Button,
+  DataTable,
+  Dialog,
+  ErrorState,
+  Input,
+  Pagination,
+  useToast,
+} from '@za/ui';
 import { PageHeader } from '@/components/page-header';
 import { useTableState } from '@/lib/hooks/use-table-state';
 import { ApiError } from '@/lib/api/client';
@@ -39,13 +47,55 @@ function ColorForm({
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors },
-  } = useForm<ColorFormValues>({ resolver: zodResolver(colorSchema), defaultValues });
+  } = useForm<ColorFormValues>({
+    resolver: zodResolver(colorSchema),
+    defaultValues: { hexCode: '#E8567F', ...defaultValues },
+  });
+  const hexCode = watch('hexCode');
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <Input label="Name" errorText={errors.name?.message} {...register('name')} />
-      <Input label="Hex code" placeholder="#E8567F" errorText={errors.hexCode?.message} {...register('hexCode')} />
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
+      <Input
+        label="Name"
+        placeholder="Any name, e.g. وردي فاتح"
+        errorText={errors.name?.message}
+        {...register('name')}
+      />
+      <div className="flex items-start gap-2">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium text-neutral-800 dark:text-neutral-200">
+            Shade
+          </span>
+          <input
+            type="color"
+            aria-label="Pick a shade"
+            value={
+              /^#[0-9A-Fa-f]{6}$/.test(hexCode ?? '') ? hexCode : '#000000'
+            }
+            onChange={(event) =>
+              setValue('hexCode', event.target.value.toUpperCase(), {
+                shouldValidate: true,
+              })
+            }
+            className="h-10 w-12 cursor-pointer rounded-sm border border-neutral-300 bg-white p-1 dark:border-neutral-700 dark:bg-neutral-900"
+          />
+        </label>
+        <div className="flex-1">
+          <Input
+            label="Hex code"
+            placeholder="#E8567F"
+            errorText={errors.hexCode?.message}
+            {...register('hexCode')}
+          />
+        </div>
+      </div>
       <Button type="submit" isLoading={isSubmitting} className="self-end">
         Save
       </Button>
@@ -54,9 +104,23 @@ function ColorForm({
 }
 
 export default function ColorsPage() {
-  const { page, limit, search, sort, setPage, setLimit, setSearch, toggleSort, sortParam } =
-    useTableState();
-  const { data, isLoading, isError } = useColorsQuery({ page, limit, search, sort: sortParam });
+  const {
+    page,
+    limit,
+    search,
+    sort,
+    setPage,
+    setLimit,
+    setSearch,
+    toggleSort,
+    sortParam,
+  } = useTableState();
+  const { data, isLoading, isError } = useColorsQuery({
+    page,
+    limit,
+    search,
+    sort: sortParam,
+  });
   const createMutation = useCreateColorMutation();
   const updateMutation = useUpdateColorMutation();
   const deleteMutation = useDeleteColorMutation();
@@ -72,7 +136,11 @@ export default function ColorsPage() {
       showToast({ tone: 'success', title: 'Color created' });
       setIsCreateOpen(false);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not create color', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not create color',
+        description: describeError(error),
+      });
     }
   }
 
@@ -83,7 +151,11 @@ export default function ColorsPage() {
       showToast({ tone: 'success', title: 'Color updated' });
       setEditingColor(null);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not update color', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not update color',
+        description: describeError(error),
+      });
     }
   }
 
@@ -94,7 +166,11 @@ export default function ColorsPage() {
       showToast({ tone: 'success', title: 'Color deleted' });
       setDeletingColor(null);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not delete color', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not delete color',
+        description: describeError(error),
+      });
     }
   }
 
@@ -108,7 +184,10 @@ export default function ColorsPage() {
         title="Colors"
         description="The color options available when creating product variants."
         action={
-          <Button leadingIcon={<Plus className="h-4 w-4" />} onClick={() => setIsCreateOpen(true)}>
+          <Button
+            leadingIcon={<Plus className="h-4 w-4" />}
+            onClick={() => setIsCreateOpen(true)}
+          >
             Add color
           </Button>
         }
@@ -138,7 +217,11 @@ export default function ColorsPage() {
               </div>
             ),
           },
-          { key: 'hexCode', header: 'Hex code', render: (row: Color) => row.hexCode },
+          {
+            key: 'hexCode',
+            header: 'Hex code',
+            render: (row: Color) => row.hexCode,
+          },
           {
             key: 'actions',
             header: '',
@@ -157,7 +240,7 @@ export default function ColorsPage() {
                   type="button"
                   aria-label={`Delete ${row.name}`}
                   onClick={() => setDeletingColor(row)}
-                  className="rounded-md p-1.5 text-neutral-500 hover:bg-danger-500/10 hover:text-danger-500 dark:text-neutral-400"
+                  className="hover:bg-danger-500/10 hover:text-danger-500 rounded-md p-1.5 text-neutral-500 dark:text-neutral-400"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -172,19 +255,42 @@ export default function ColorsPage() {
         onSortChange={toggleSort}
         emptyTitle="No colors yet"
         emptyDescription="Create your first color to start building variants."
-        emptyAction={<Button onClick={() => setIsCreateOpen(true)}>Add color</Button>}
+        emptyAction={
+          <Button onClick={() => setIsCreateOpen(true)}>Add color</Button>
+        }
       />
       {data && (
-        <Pagination page={page} totalPages={data.meta.totalPages} limit={limit} onPageChange={setPage} onLimitChange={setLimit} />
+        <Pagination
+          page={page}
+          totalPages={data.meta.totalPages}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
       )}
 
-      <Dialog open={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Add color">
-        <ColorForm onSubmit={handleCreate} isSubmitting={createMutation.isPending} />
+      <Dialog
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add color"
+      >
+        <ColorForm
+          onSubmit={handleCreate}
+          isSubmitting={createMutation.isPending}
+        />
       </Dialog>
 
-      <Dialog open={editingColor !== null} onClose={() => setEditingColor(null)} title="Edit color">
+      <Dialog
+        open={editingColor !== null}
+        onClose={() => setEditingColor(null)}
+        title="Edit color"
+      >
         {editingColor && (
-          <ColorForm defaultValues={editingColor} onSubmit={handleUpdate} isSubmitting={updateMutation.isPending} />
+          <ColorForm
+            defaultValues={editingColor}
+            onSubmit={handleUpdate}
+            isSubmitting={updateMutation.isPending}
+          />
         )}
       </Dialog>
 
@@ -198,7 +304,11 @@ export default function ColorsPage() {
             <Button variant="outline" onClick={() => setDeletingColor(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" isLoading={deleteMutation.isPending} onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              isLoading={deleteMutation.isPending}
+              onClick={handleDelete}
+            >
               Delete
             </Button>
           </>

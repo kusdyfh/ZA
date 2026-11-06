@@ -1,3 +1,4 @@
+import { isValidIraqCity } from '@za/shared';
 import {
   InvalidAddressError,
   InvalidCustomerNameError,
@@ -67,12 +68,24 @@ export class CustomerPolicy {
     if (!input.country.trim()) {
       throw new InvalidAddressError('Country is required.');
     }
+    // Delivery is Iraq-only (product decision) — city must be one of the
+    // governorate's own districts, not an arbitrary string paired with it.
+    if (!isValidIraqCity(input.governorate, input.city)) {
+      throw new InvalidAddressError(
+        'City does not belong to the selected governorate.',
+      );
+    }
   }
 
   /** Rating required 1-5; body optional but capped, per docs/product/13-REVIEWS.md. */
-  static assertValidReview(rating: number, body: string | null | undefined): void {
+  static assertValidReview(
+    rating: number,
+    body: string | null | undefined,
+  ): void {
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
-      throw new InvalidReviewError('Rating must be a whole number from 1 to 5.');
+      throw new InvalidReviewError(
+        'Rating must be a whole number from 1 to 5.',
+      );
     }
     if (body && body.length > CustomerPolicy.REVIEW_BODY_MAX_LENGTH) {
       throw new InvalidReviewError(

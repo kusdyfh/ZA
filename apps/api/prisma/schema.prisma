@@ -281,6 +281,7 @@ model Store {
   carts       Cart[]
   orders      Order[]
   customers   Customer[]
+  phoneVerificationCodes PhoneVerificationCode[]
 
   // Epic 11 — Commerce Services (ADR 0023/0024/0025).
   outboxEvents            OutboxEvent[]
@@ -305,6 +306,19 @@ enum ProductStatus {
   DRAFT
   ACTIVE
   ARCHIVED
+}
+
+/// The storefront homepage's distinct, admin-curated product sections —
+/// see apps/storefront/src/app/home-content.tsx. Each name matches that
+/// section's own on-page heading, not an internal/technical label, so the
+/// admin's "where does this show up" picker reads the same as the page
+/// the admin is actually looking at.
+enum ProductPlacement {
+  HOME_HERO
+  ART_STORY_WALL
+  TEN_PRODUCTS_SHOWCASE
+  ZA_EDIT_BOOK
+  DOLL_DRESS_UP
 }
 
 /// Self-referential tree, max depth 3 (root=0, 1, 2) — enforced at the
@@ -468,6 +482,12 @@ model Product {
   isBestSeller Boolean @default(false)
   isNewArrival Boolean @default(false)
   isGiftBox    Boolean @default(false)
+
+  /// Which home-page sections this product is curated into (admin-controlled,
+  /// independent of isFeatured/isBestSeller/isNewArrival — those remain the
+  /// /shop filter tags; this is "where on the homepage", not "what kind of
+  /// product"). A product can appear in any number of placements, or none.
+  placements ProductPlacement[] @default([])
 
   metaTitle       String?
   metaDescription String?
@@ -835,6 +855,30 @@ model CartItem {
   @@map("cart_items")
 }
 
+/// Single-use, short-lived WhatsApp OTP for the checkout contact phone
+/// (product decision — phone is required and verified before an order
+/// can be placed; email is optional instead). `codeHash` is the SHA-256
+/// of the 6-digit code, same "never store the recoverable secret" rule
+/// as PasswordResetToken. `phone` is the E.164-normalized number
+/// (`normalizeIraqiPhone`), so lookups are exact-match regardless of how
+/// the customer typed it. Not keyed to a Customer/Order — a guest
+/// verifies a phone before any order exists.
+model PhoneVerificationCode {
+  id         String    @id @default(cuid())
+  store      Store     @relation(fields: [storeId], references: [id])
+  storeId    String
+  phone      String
+  codeHash   String
+  attempts   Int       @default(0)
+  expiresAt  DateTime
+  verifiedAt DateTime?
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([storeId, phone])
+  @@map("phone_verification_codes")
+}
+
 enum OrderStatus {
   PENDING
   CONFIRMED
@@ -886,7 +930,10 @@ model Order {
   customerId String?
 
   customerNameSnapshot  String
-  customerEmailSnapshot String
+  /// Optional at checkout (product decision) — phone is the required
+  /// contact method instead. Guest-order email backfill (ADR 0018 §4)
+  /// simply never matches orders with no email, which is correct.
+  customerEmailSnapshot String?
   customerPhoneSnapshot String
 
   shippingFullName    String

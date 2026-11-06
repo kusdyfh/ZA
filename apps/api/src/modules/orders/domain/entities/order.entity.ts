@@ -2,7 +2,10 @@ import type { OrderStatusValue } from '../constants/order-status.constants';
 import type { PaymentMethodValue } from '../constants/payment-method.constants';
 import type { PaymentStatusValue } from '../constants/payment-status.constants';
 import { OrderItem, type OrderItemProps } from './order-item.entity';
-import { OrderStatusHistoryEntry, type OrderStatusHistoryEntryProps } from './order-status-history-entry.entity';
+import {
+  OrderStatusHistoryEntry,
+  type OrderStatusHistoryEntryProps,
+} from './order-status-history-entry.entity';
 import { OrderNote, type OrderNoteProps } from './order-note.entity';
 
 export interface OrderProps {
@@ -15,7 +18,8 @@ export interface OrderProps {
   customerId: string | null;
 
   customerNameSnapshot: string;
-  customerEmailSnapshot: string;
+  /** Optional at checkout (product decision) — phone is required instead. */
+  customerEmailSnapshot: string | null;
   customerPhoneSnapshot: string;
 
   shippingFullName: string;
@@ -92,7 +96,7 @@ export class Order {
     return this.props.customerNameSnapshot;
   }
 
-  get customerEmailSnapshot(): string {
+  get customerEmailSnapshot(): string | null {
     return this.props.customerEmailSnapshot;
   }
 
@@ -173,7 +177,9 @@ export class Order {
   }
 
   get statusHistory(): OrderStatusHistoryEntry[] {
-    return this.props.statusHistory.map((entry) => OrderStatusHistoryEntry.reconstitute(entry));
+    return this.props.statusHistory.map((entry) =>
+      OrderStatusHistoryEntry.reconstitute(entry),
+    );
   }
 
   get notes(): OrderNote[] {

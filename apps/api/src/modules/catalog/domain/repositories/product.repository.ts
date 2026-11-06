@@ -3,6 +3,7 @@ import type { Slug } from '../value-objects/slug.vo';
 import type { Money } from '../value-objects/money.vo';
 import type { SeoMetadata } from '../value-objects/seo-metadata.vo';
 import type { ProductStatusValue } from '../constants/product-status.constants';
+import type { ProductPlacementValue } from '../constants/product-placement.constants';
 
 export const PRODUCT_REPOSITORY = Symbol('PRODUCT_REPOSITORY');
 
@@ -21,6 +22,7 @@ export interface CreateProductData {
   isBestSeller: boolean;
   isNewArrival: boolean;
   isGiftBox: boolean;
+  placements: ProductPlacementValue[];
   seo: SeoMetadata;
   highlights: string[];
   richContent: string | null;
@@ -33,6 +35,8 @@ export interface ProductListFilters {
   isFeatured?: boolean;
   isBestSeller?: boolean;
   isNewArrival?: boolean;
+  /** Matches products curated into this homepage section — see ProductPlacement. */
+  placement?: ProductPlacementValue;
   /** Inclusive price-range bounds — additive, Epic 9.5 (ADR 0021 §4). */
   priceMin?: number;
   priceMax?: number;
@@ -50,6 +54,10 @@ export interface ProductRepository {
   findBySku(storeId: string, sku: string): Promise<Product | null>;
   findManyByIds(storeId: string, ids: string[]): Promise<Product[]>;
   list(storeId: string, filters?: ProductListFilters): Promise<Product[]>;
-  replaceTags(storeId: string, productId: string, tagIds: string[]): Promise<void>;
+  replaceTags(
+    storeId: string,
+    productId: string,
+    tagIds: string[],
+  ): Promise<void>;
   listTagIds(storeId: string, productId: string): Promise<string[]>;
 }

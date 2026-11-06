@@ -2,8 +2,14 @@ import { SetCollectionProductsUseCase } from './set-collection-products.use-case
 import type { CollectionRepository } from '../../domain/repositories/collection.repository';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Collection, type CollectionProps } from '../../domain/entities/collection.entity';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Collection,
+  type CollectionProps,
+} from '../../domain/entities/collection.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
@@ -49,6 +55,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -89,7 +96,11 @@ describe('SetCollectionProductsUseCase', () => {
     storeContext = {
       getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
     } as unknown as StoreContext;
-    useCase = new SetCollectionProductsUseCase(collections, products, storeContext);
+    useCase = new SetCollectionProductsUseCase(
+      collections,
+      products,
+      storeContext,
+    );
   });
 
   it('throws CollectionNotFoundError when the collection does not exist', async () => {
@@ -128,8 +139,15 @@ describe('SetCollectionProductsUseCase', () => {
       buildProduct({ id: 'prod-2' }),
     ]);
 
-    await useCase.execute({ collectionId: 'col-1', productIds: ['prod-1', 'prod-2', 'prod-1'] });
+    await useCase.execute({
+      collectionId: 'col-1',
+      productIds: ['prod-1', 'prod-2', 'prod-1'],
+    });
 
-    expect(collections.replaceProducts).toHaveBeenCalledWith('store-1', 'col-1', ['prod-1', 'prod-2']);
+    expect(collections.replaceProducts).toHaveBeenCalledWith(
+      'store-1',
+      'col-1',
+      ['prod-1', 'prod-2'],
+    );
   });
 });

@@ -1,13 +1,24 @@
 import { Inject, Injectable } from '@nestjs/common';
+import { slugify } from '@za/shared';
 import { StoreContext } from '../../../../infrastructure/store/store-context.service';
 import type { Product } from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { ProductPolicy } from '../../domain/policies/product-policy';
-import { PRODUCT_REPOSITORY, type ProductRepository } from '../../domain/repositories/product.repository';
-import { CATEGORY_REPOSITORY, type CategoryRepository } from '../../domain/repositories/category.repository';
-import { BRAND_REPOSITORY, type BrandRepository } from '../../domain/repositories/brand.repository';
+import type { ProductPlacementValue } from '../../domain/constants/product-placement.constants';
+import {
+  PRODUCT_REPOSITORY,
+  type ProductRepository,
+} from '../../domain/repositories/product.repository';
+import {
+  CATEGORY_REPOSITORY,
+  type CategoryRepository,
+} from '../../domain/repositories/category.repository';
+import {
+  BRAND_REPOSITORY,
+  type BrandRepository,
+} from '../../domain/repositories/brand.repository';
 import {
   BrandNotFoundError,
   CategoryNotFoundError,
@@ -29,6 +40,7 @@ export interface CreateProductInput {
   isBestSeller?: boolean;
   isNewArrival?: boolean;
   isGiftBox?: boolean;
+  placements?: ProductPlacementValue[];
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogImageUrl?: string | null;
@@ -40,7 +52,8 @@ export interface CreateProductInput {
 export class CreateProductUseCase {
   constructor(
     @Inject(PRODUCT_REPOSITORY) private readonly products: ProductRepository,
-    @Inject(CATEGORY_REPOSITORY) private readonly categories: CategoryRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categories: CategoryRepository,
     @Inject(BRAND_REPOSITORY) private readonly brands: BrandRepository,
     private readonly storeContext: StoreContext,
   ) {}
@@ -49,7 +62,6 @@ export class CreateProductUseCase {
     const storeId = await this.storeContext.getCurrentStoreId();
     const name = ProductPolicy.validateName(input.name);
     const sku = ProductPolicy.validateSku(input.sku);
-    const slug = input.slug ? Slug.fromRaw(input.slug) : Slug.fromName(name);
 
     const category = await this.categories.findById(storeId, input.categoryId);
     if (!category) {
@@ -63,13 +75,23 @@ export class CreateProductUseCase {
       }
     }
 
-    const [existingBySlug, existingBySku] = await Promise.all([
-      this.products.findBySlug(storeId, slug.toString()),
-      this.products.findBySku(storeId, sku),
-    ]);
-    if (existingBySlug) {
-      throw new SlugAlreadyInUseError(slug.toString());
+    const skuCheck = this.products.findBySku(storeId, sku);
+
+    let slug: Slug;
+    if (input.slug) {
+      slug = Slug.fromRaw(input.slug);
+      const existingBySlug = await this.products.findBySlug(
+        storeId,
+        slug.toString(),
+      );
+      if (existingBySlug) {
+        throw new SlugAlreadyInUseError(slug.toString());
+      }
+    } else {
+      slug = await this.generateUniqueSlug(storeId, name);
     }
+
+    const existingBySku = await skuCheck;
     if (existingBySku) {
       throw new SkuAlreadyInUseError(sku);
     }
@@ -84,7 +106,11 @@ export class CreateProductUseCase {
 
     const seo = SeoMetadata.create({
       metaTitle: input.metaTitle ?? name,
-      metaDescription: input.metaDescription ?? input.shortDescription ?? input.description ?? null,
+      metaDescription:
+        input.metaDescription ??
+        input.shortDescription ??
+        input.description ??
+        null,
       ogImageUrl: input.ogImageUrl ?? null,
     });
 
@@ -103,9 +129,30 @@ export class CreateProductUseCase {
       isBestSeller: input.isBestSeller ?? false,
       isNewArrival: input.isNewArrival ?? false,
       isGiftBox: input.isGiftBox ?? false,
+      placements: input.placements ?? [],
       seo,
       highlights: input.highlights ?? [],
       richContent: input.richContent ?? null,
     });
+  }
+
+  /**
+   * Names that `slugify` strips down to nothing (e.g. names written
+   * entirely in a non-Latin script) fall back to "product" so the slug
+   * is never empty; a numeric suffix is appended until the candidate
+   * is free, so same-named products never collide.
+   */
+  private async generateUniqueSlug(
+    storeId: string,
+    name: string,
+  ): Promise<Slug> {
+    const base = slugify(name) || 'product';
+    let candidate = base;
+    let attempt = 2;
+    while (await this.products.findBySlug(storeId, candidate)) {
+      candidate = `${base}-${attempt}`;
+      attempt += 1;
+    }
+    return Slug.fromRaw(candidate);
   }
 }

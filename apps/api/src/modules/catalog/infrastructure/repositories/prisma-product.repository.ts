@@ -31,6 +31,7 @@ export class PrismaProductRepository implements ProductRepository {
         isBestSeller: data.isBestSeller,
         isNewArrival: data.isNewArrival,
         isGiftBox: data.isGiftBox,
+        placements: data.placements,
         metaTitle: data.seo.metaTitle,
         metaDescription: data.seo.metaDescription,
         ogImageUrl: data.seo.ogImageUrl,
@@ -61,6 +62,7 @@ export class PrismaProductRepository implements ProductRepository {
         isBestSeller: props.isBestSeller,
         isNewArrival: props.isNewArrival,
         isGiftBox: props.isGiftBox,
+        placements: props.placements,
         metaTitle: props.seo.metaTitle,
         metaDescription: props.seo.metaDescription,
         ogImageUrl: props.seo.ogImageUrl,
@@ -71,33 +73,48 @@ export class PrismaProductRepository implements ProductRepository {
   }
 
   async findById(storeId: string, id: string): Promise<Product | null> {
-    const record = await this.prisma.product.findFirst({ where: { id, storeId } });
+    const record = await this.prisma.product.findFirst({
+      where: { id, storeId },
+    });
     return record ? ProductMapper.toDomain(record) : null;
   }
 
   async findBySlug(storeId: string, slug: string): Promise<Product | null> {
-    const record = await this.prisma.product.findUnique({ where: { storeId_slug: { storeId, slug } } });
+    const record = await this.prisma.product.findUnique({
+      where: { storeId_slug: { storeId, slug } },
+    });
     return record ? ProductMapper.toDomain(record) : null;
   }
 
   async findBySku(storeId: string, sku: string): Promise<Product | null> {
-    const record = await this.prisma.product.findUnique({ where: { storeId_sku: { storeId, sku } } });
+    const record = await this.prisma.product.findUnique({
+      where: { storeId_sku: { storeId, sku } },
+    });
     return record ? ProductMapper.toDomain(record) : null;
   }
 
   async findManyByIds(storeId: string, ids: string[]): Promise<Product[]> {
-    const records = await this.prisma.product.findMany({ where: { storeId, id: { in: ids } } });
+    const records = await this.prisma.product.findMany({
+      where: { storeId, id: { in: ids } },
+    });
     return records.map(ProductMapper.toDomain);
   }
 
-  async list(storeId: string, filters?: ProductListFilters): Promise<Product[]> {
+  async list(
+    storeId: string,
+    filters?: ProductListFilters,
+  ): Promise<Product[]> {
     const where: Prisma.ProductWhereInput = { storeId };
     if (filters?.status) where.status = filters.status;
     if (filters?.categoryId) where.categoryId = filters.categoryId;
     if (filters?.brandId) where.brandId = filters.brandId;
-    if (filters?.isFeatured !== undefined) where.isFeatured = filters.isFeatured;
-    if (filters?.isBestSeller !== undefined) where.isBestSeller = filters.isBestSeller;
-    if (filters?.isNewArrival !== undefined) where.isNewArrival = filters.isNewArrival;
+    if (filters?.isFeatured !== undefined)
+      where.isFeatured = filters.isFeatured;
+    if (filters?.isBestSeller !== undefined)
+      where.isBestSeller = filters.isBestSeller;
+    if (filters?.isNewArrival !== undefined)
+      where.isNewArrival = filters.isNewArrival;
+    if (filters?.placement) where.placements = { has: filters.placement };
     if (filters?.priceMin !== undefined || filters?.priceMax !== undefined) {
       where.price = {
         ...(filters.priceMin !== undefined ? { gte: filters.priceMin } : {}),
@@ -113,11 +130,18 @@ export class PrismaProductRepository implements ProductRepository {
       };
     }
 
-    const records = await this.prisma.product.findMany({ where, orderBy: { createdAt: 'desc' } });
+    const records = await this.prisma.product.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+    });
     return records.map(ProductMapper.toDomain);
   }
 
-  async replaceTags(_storeId: string, productId: string, tagIds: string[]): Promise<void> {
+  async replaceTags(
+    _storeId: string,
+    productId: string,
+    tagIds: string[],
+  ): Promise<void> {
     await this.prisma.$transaction([
       this.prisma.productTag.deleteMany({ where: { productId } }),
       this.prisma.productTag.createMany({

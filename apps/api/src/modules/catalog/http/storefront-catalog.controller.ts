@@ -17,7 +17,11 @@ import { ProductMediaResponseDto } from '../application/dto/product-media-respon
 import { ProductSpecificationResponseDto } from '../application/dto/product-specification-response.dto';
 import { CollectionResponseDto } from '../application/dto/collection-response.dto';
 import { PRODUCT_STATUS } from '../domain/constants/product-status.constants';
-import { paginate, type PaginatedResult } from '../../../shared/pagination/paginate';
+import type { ProductPlacementValue } from '../domain/constants/product-placement.constants';
+import {
+  paginate,
+  type PaginatedResult,
+} from '../../../shared/pagination/paginate';
 import { Public } from '../../../shared/decorators/public.decorator';
 
 /**
@@ -77,7 +81,9 @@ export class StorefrontCatalogController {
    */
   @Get('products')
   @ApiOkResponse({ type: ProductResponseDto, isArray: true })
-  async products(@Query() query: PublicListProductsQueryDto): Promise<PaginatedResult<ProductResponseDto>> {
+  async products(
+    @Query() query: PublicListProductsQueryDto,
+  ): Promise<PaginatedResult<ProductResponseDto>> {
     const products = await this.listProducts.execute({
       status: PRODUCT_STATUS.ACTIVE,
       categoryId: query.categoryId,
@@ -87,10 +93,13 @@ export class StorefrontCatalogController {
       isFeatured: query.isFeatured,
       isBestSeller: query.isBestSeller,
       isNewArrival: query.isNewArrival,
+      placement: query.placement as ProductPlacementValue | undefined,
       priceMin: query.priceMin,
       priceMax: query.priceMax,
     });
-    const dtos = products.map((product) => ProductResponseDto.fromDomain(product));
+    const dtos = products.map((product) =>
+      ProductResponseDto.fromDomain(product),
+    );
     return paginate(dtos, query, {
       searchableFields: ['name', 'sku'],
       sortableFields: ['name', 'price'],
@@ -99,44 +108,70 @@ export class StorefrontCatalogController {
 
   @Get('products/:slug')
   @ApiOkResponse({ type: ProductResponseDto })
-  async productBySlug(@Param('slug') slug: string): Promise<ProductResponseDto> {
+  async productBySlug(
+    @Param('slug') slug: string,
+  ): Promise<ProductResponseDto> {
     const product = await this.getPublicProductBySlug.execute({ slug });
     return ProductResponseDto.fromDomain(product);
   }
 
   @Get('products/:slug/detail')
   @ApiOkResponse({ type: PublicProductDetailResponseDto })
-  async productDetailBySlug(@Param('slug') slug: string): Promise<PublicProductDetailResponseDto> {
+  async productDetailBySlug(
+    @Param('slug') slug: string,
+  ): Promise<PublicProductDetailResponseDto> {
     const detail = await this.getPublicProductDetail.execute({ slug });
     return {
       product: ProductResponseDto.fromDomain(detail.product),
-      variants: detail.variants.map((variant) => ProductVariantResponseDto.fromDomain(variant)),
+      variants: detail.variants.map((variant) =>
+        ProductVariantResponseDto.fromDomain(variant),
+      ),
       media: detail.media.map((item) => ProductMediaResponseDto.fromItem(item)),
-      specifications: detail.specifications.map((item) => ProductSpecificationResponseDto.fromItem(item)),
-      related: detail.related.map((product) => ProductResponseDto.fromDomain(product)),
-      crossSell: detail.crossSell.map((product) => ProductResponseDto.fromDomain(product)),
-      upSell: detail.upSell.map((product) => ProductResponseDto.fromDomain(product)),
+      specifications: detail.specifications.map((item) =>
+        ProductSpecificationResponseDto.fromItem(item),
+      ),
+      related: detail.related.map((product) =>
+        ProductResponseDto.fromDomain(product),
+      ),
+      crossSell: detail.crossSell.map((product) =>
+        ProductResponseDto.fromDomain(product),
+      ),
+      upSell: detail.upSell.map((product) =>
+        ProductResponseDto.fromDomain(product),
+      ),
     };
   }
 
   @Get('products/:productId/variants')
   @ApiOkResponse({ type: ProductVariantResponseDto, isArray: true })
-  async productVariants(@Param('productId') productId: string): Promise<ProductVariantResponseDto[]> {
-    const variants = await this.listPublicProductVariants.execute({ productId });
-    return variants.map((variant) => ProductVariantResponseDto.fromDomain(variant));
+  async productVariants(
+    @Param('productId') productId: string,
+  ): Promise<ProductVariantResponseDto[]> {
+    const variants = await this.listPublicProductVariants.execute({
+      productId,
+    });
+    return variants.map((variant) =>
+      ProductVariantResponseDto.fromDomain(variant),
+    );
   }
 
   @Get('collections')
   @ApiOkResponse({ type: CollectionResponseDto, isArray: true })
   async collections(): Promise<CollectionResponseDto[]> {
     const collections = await this.listPublicCollections.execute();
-    return collections.map((collection) => CollectionResponseDto.fromDomain(collection));
+    return collections.map((collection) =>
+      CollectionResponseDto.fromDomain(collection),
+    );
   }
 
   @Get('collections/:id/products')
   @ApiOkResponse({ type: ProductResponseDto, isArray: true })
-  async collectionProducts(@Param('id') id: string): Promise<ProductResponseDto[]> {
-    const products = await this.listPublicCollectionProducts.execute({ collectionId: id });
+  async collectionProducts(
+    @Param('id') id: string,
+  ): Promise<ProductResponseDto[]> {
+    const products = await this.listPublicCollectionProducts.execute({
+      collectionId: id,
+    });
     return products.map((product) => ProductResponseDto.fromDomain(product));
   }
 }

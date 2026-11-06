@@ -2,13 +2,19 @@ import { SetProductRelationsUseCase } from './set-product-relations.use-case';
 import type { ProductRelationRepository } from '../../domain/repositories/product-relation.repository';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { PRODUCT_STATUS } from '../../domain/constants/product-status.constants';
 import { PRODUCT_RELATION_TYPE } from '../../domain/constants/product-relation-type.constants';
-import { ProductNotFoundError, SelfProductRelationError } from '../../domain/errors/catalog.errors';
+import {
+  ProductNotFoundError,
+  SelfProductRelationError,
+} from '../../domain/errors/catalog.errors';
 
 function buildProduct(overrides: Partial<ProductProps> = {}): Product {
   return Product.reconstitute({
@@ -28,6 +34,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -65,7 +72,11 @@ describe('SetProductRelationsUseCase', () => {
   it('throws ProductNotFoundError when the product does not exist', async () => {
     products.findById.mockResolvedValue(null);
     await expect(
-      useCase.execute({ productId: 'missing', type: PRODUCT_RELATION_TYPE.RELATED, relatedProductIds: [] }),
+      useCase.execute({
+        productId: 'missing',
+        type: PRODUCT_RELATION_TYPE.RELATED,
+        relatedProductIds: [],
+      }),
     ).rejects.toThrow(ProductNotFoundError);
   });
 
@@ -106,9 +117,10 @@ describe('SetProductRelationsUseCase', () => {
       relatedProductIds: ['prod-2', 'prod-3', 'prod-2'],
     });
 
-    expect(relations.replace).toHaveBeenCalledWith('prod-1', PRODUCT_RELATION_TYPE.RELATED, [
-      'prod-2',
-      'prod-3',
-    ]);
+    expect(relations.replace).toHaveBeenCalledWith(
+      'prod-1',
+      PRODUCT_RELATION_TYPE.RELATED,
+      ['prod-2', 'prod-3'],
+    );
   });
 });

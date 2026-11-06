@@ -1,5 +1,8 @@
 import { ActorType } from '@za/types';
-import { PlaceOrderUseCase, type PlaceOrderInput } from './place-order.use-case';
+import {
+  PlaceOrderUseCase,
+  type PlaceOrderInput,
+} from './place-order.use-case';
 import type { CartRepository } from '../../domain/repositories/cart.repository';
 import type { ProductVariantRepository } from '../../../catalog/domain/repositories/product-variant.repository';
 import type { ProductRepository } from '../../../catalog/domain/repositories/product.repository';
@@ -9,7 +12,13 @@ import type { ConfirmStockReservationUseCase } from '../../../inventory/applicat
 import type { ReleaseStockReservationUseCase } from '../../../inventory/application/use-cases/release-stock-reservation.use-case';
 import type { ShipmentRepository } from '../../../shipping/domain/repositories/shipment.repository';
 import type { QuoteShippingRateUseCase } from '../../../shipping/application/use-cases/quote-shipping-rate.use-case';
+import type { PhoneVerificationCodeRepository } from '../../domain/repositories/phone-verification-code.repository';
+import { PhoneVerificationCode } from '../../domain/entities/phone-verification-code.entity';
 import { InsufficientStockError } from '../../../inventory/domain/errors/inventory.errors';
+import {
+  InvalidPhoneNumberError,
+  PhoneNotVerifiedError,
+} from '../../domain/errors/checkout.errors';
 import { Cart } from '../../domain/entities/cart.entity';
 import type { CartItemProps } from '../../domain/entities/cart-item.entity';
 import { ProductVariant } from '../../../catalog/domain/entities/product-variant.entity';
@@ -25,7 +34,10 @@ import { ORDER_STATUS } from '../../../orders/domain/constants/order-status.cons
 import { PAYMENT_METHOD } from '../../../orders/domain/constants/payment-method.constants';
 import { PAYMENT_STATUS } from '../../../orders/domain/constants/payment-status.constants';
 import { UnsupportedPaymentMethodError } from '../../../orders/domain/errors/order.errors';
-import { EmptyCartError, ItemUnavailableAtCheckoutError } from '../../domain/errors/checkout.errors';
+import {
+  EmptyCartError,
+  ItemUnavailableAtCheckoutError,
+} from '../../domain/errors/checkout.errors';
 
 function buildCart(items: CartItemProps[]): Cart {
   return Cart.reconstitute({
@@ -39,7 +51,14 @@ function buildCart(items: CartItemProps[]): Cart {
 }
 
 function buildCartItem(variantId: string, quantity: number): CartItemProps {
-  return { id: `item-${variantId}`, cartId: 'cart-1', variantId, quantity, createdAt: new Date(), updatedAt: new Date() };
+  return {
+    id: `item-${variantId}`,
+    cartId: 'cart-1',
+    variantId,
+    quantity,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 }
 
 function buildVariant(id: string, sku: string): ProductVariant {
@@ -75,12 +94,27 @@ function buildProduct(id: string, name: string, price: number): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   });
+}
+
+function buildVerifiedPhoneCode(phone: string): PhoneVerificationCode {
+  const code = PhoneVerificationCode.reconstitute({
+    id: 'phone-code-1',
+    phone,
+    codeHash: 'irrelevant-hash',
+    attempts: 0,
+    expiresAt: new Date(Date.now() + 10 * 60_000),
+    verifiedAt: new Date(),
+    consumedAt: null,
+    createdAt: new Date(),
+  });
+  return code;
 }
 
 function buildReservation(id: string): StockReservation {
@@ -122,7 +156,10 @@ function buildOrder(status: string): Order {
     total: 83000,
     currencyCode: 'IQD',
     paymentMethod: PAYMENT_METHOD.COD,
-    paymentStatus: status === ORDER_STATUS.CONFIRMED ? PAYMENT_STATUS.AWAITING_COLLECTION : PAYMENT_STATUS.PENDING,
+    paymentStatus:
+      status === ORDER_STATUS.CONFIRMED
+        ? PAYMENT_STATUS.AWAITING_COLLECTION
+        : PAYMENT_STATUS.PENDING,
     shippingMethodId: 'method-1',
     cancelReason: null,
     items: [],
@@ -158,6 +195,8 @@ describe('PlaceOrderUseCase', () => {
   let confirmStockReservation: jest.Mocked<ConfirmStockReservationUseCase>;
   let releaseStockReservation: jest.Mocked<ReleaseStockReservationUseCase>;
   let quoteShippingRate: jest.Mocked<QuoteShippingRateUseCase>;
+  let phoneVerificationCodes: jest.Mocked<PhoneVerificationCodeRepository>;
+  let savedVerificationCode: PhoneVerificationCode | undefined;
   let storeContext: { getCurrentStoreId: jest.Mock };
   let useCase: PlaceOrderUseCase;
 
@@ -211,11 +250,33 @@ describe('PlaceOrderUseCase', () => {
       appendTrackingEvent: jest.fn(),
       list: jest.fn(),
     };
-    createStockReservation = { execute: jest.fn() } as unknown as jest.Mocked<CreateStockReservationUseCase>;
-    confirmStockReservation = { execute: jest.fn() } as unknown as jest.Mocked<ConfirmStockReservationUseCase>;
-    releaseStockReservation = { execute: jest.fn() } as unknown as jest.Mocked<ReleaseStockReservationUseCase>;
-    quoteShippingRate = { execute: jest.fn() } as unknown as jest.Mocked<QuoteShippingRateUseCase>;
-    storeContext = { getCurrentStoreId: jest.fn().mockResolvedValue('store-1') };
+    createStockReservation = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<CreateStockReservationUseCase>;
+    confirmStockReservation = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<ConfirmStockReservationUseCase>;
+    releaseStockReservation = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<ReleaseStockReservationUseCase>;
+    quoteShippingRate = {
+      execute: jest.fn(),
+    } as unknown as jest.Mocked<QuoteShippingRateUseCase>;
+    savedVerificationCode = undefined;
+    phoneVerificationCodes = {
+      create: jest.fn(),
+      findLatestByPhone: jest.fn(),
+      save: jest.fn((code: PhoneVerificationCode) => {
+        savedVerificationCode = code;
+        return Promise.resolve();
+      }),
+    };
+    phoneVerificationCodes.findLatestByPhone.mockResolvedValue(
+      buildVerifiedPhoneCode('+9647700000000'),
+    );
+    storeContext = {
+      getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
+    };
 
     useCase = new PlaceOrderUseCase(
       carts,
@@ -223,6 +284,7 @@ describe('PlaceOrderUseCase', () => {
       products,
       orders,
       shipments,
+      phoneVerificationCodes,
       createStockReservation,
       confirmStockReservation,
       releaseStockReservation,
@@ -232,11 +294,21 @@ describe('PlaceOrderUseCase', () => {
   });
 
   it('reserves stock, creates the order, auto-confirms COD, and clears the cart', async () => {
-    carts.findOrCreateByToken.mockResolvedValue(buildCart([buildCartItem('variant-1', 2)]));
-    productVariants.findById.mockResolvedValue(buildVariant('variant-1', 'ZA-TOP-VNECK-001-NVY-M'));
-    products.findById.mockResolvedValue(buildProduct('prod-variant-1', 'Classic V-Neck Scrub Top', 39000));
+    carts.findOrCreateByToken.mockResolvedValue(
+      buildCart([buildCartItem('variant-1', 2)]),
+    );
+    productVariants.findById.mockResolvedValue(
+      buildVariant('variant-1', 'ZA-TOP-VNECK-001-NVY-M'),
+    );
+    products.findById.mockResolvedValue(
+      buildProduct('prod-variant-1', 'Classic V-Neck Scrub Top', 39000),
+    );
     createStockReservation.execute.mockResolvedValue(buildReservation('res-1'));
-    quoteShippingRate.execute.mockResolvedValue({ fee: 5000, zoneId: 'zone-1', estimatedDays: null });
+    quoteShippingRate.execute.mockResolvedValue({
+      fee: 5000,
+      zoneId: 'zone-1',
+      estimatedDays: null,
+    });
     orders.create.mockResolvedValue(buildOrder(ORDER_STATUS.PENDING));
     orders.changeStatus.mockResolvedValue(buildOrder(ORDER_STATUS.CONFIRMED));
 
@@ -282,13 +354,40 @@ describe('PlaceOrderUseCase', () => {
       shippingMethodId: 'method-1',
     });
     expect(carts.clear).toHaveBeenCalledWith('cart-1');
+    expect(savedVerificationCode?.toProps().consumedAt).not.toBeNull();
     expect(result.status).toBe(ORDER_STATUS.CONFIRMED);
   });
 
-  it('rejects CARD as a payment method before touching the cart', async () => {
-    await expect(useCase.execute({ ...VALID_INPUT, paymentMethod: PAYMENT_METHOD.CARD })).rejects.toThrow(
-      UnsupportedPaymentMethodError,
+  it('rejects placing an order when the phone has no successful verification', async () => {
+    phoneVerificationCodes.findLatestByPhone.mockResolvedValue(null);
+
+    await expect(useCase.execute(VALID_INPUT)).rejects.toThrow(
+      PhoneNotVerifiedError,
     );
+    expect(carts.findOrCreateByToken).not.toHaveBeenCalled();
+  });
+
+  it('rejects placing an order when the phone verification was already consumed by a prior order', async () => {
+    const spent = buildVerifiedPhoneCode('+9647700000000');
+    spent.markConsumed();
+    phoneVerificationCodes.findLatestByPhone.mockResolvedValue(spent);
+
+    await expect(useCase.execute(VALID_INPUT)).rejects.toThrow(
+      PhoneNotVerifiedError,
+    );
+  });
+
+  it('rejects a malformed phone number before checking verification', async () => {
+    await expect(
+      useCase.execute({ ...VALID_INPUT, customerPhone: 'not-a-phone' }),
+    ).rejects.toThrow(InvalidPhoneNumberError);
+    expect(phoneVerificationCodes.findLatestByPhone).not.toHaveBeenCalled();
+  });
+
+  it('rejects CARD as a payment method before touching the cart', async () => {
+    await expect(
+      useCase.execute({ ...VALID_INPUT, paymentMethod: PAYMENT_METHOD.CARD }),
+    ).rejects.toThrow(UnsupportedPaymentMethodError);
     expect(carts.findOrCreateByToken).not.toHaveBeenCalled();
   });
 
@@ -304,22 +403,34 @@ describe('PlaceOrderUseCase', () => {
       buildCart([buildCartItem('variant-1', 2), buildCartItem('variant-2', 1)]),
     );
     productVariants.findById.mockImplementation((_storeId, variantId) => {
-      if (variantId === 'variant-1') return Promise.resolve(buildVariant('variant-1', 'SKU-1'));
-      if (variantId === 'variant-2') return Promise.resolve(buildVariant('variant-2', 'SKU-2'));
+      if (variantId === 'variant-1')
+        return Promise.resolve(buildVariant('variant-1', 'SKU-1'));
+      if (variantId === 'variant-2')
+        return Promise.resolve(buildVariant('variant-2', 'SKU-2'));
       return Promise.resolve(null);
     });
     products.findById.mockImplementation((_storeId, productId) => {
-      if (productId === 'prod-variant-1') return Promise.resolve(buildProduct('prod-variant-1', 'Item One', 10000));
-      if (productId === 'prod-variant-2') return Promise.resolve(buildProduct('prod-variant-2', 'Item Two', 20000));
+      if (productId === 'prod-variant-1')
+        return Promise.resolve(
+          buildProduct('prod-variant-1', 'Item One', 10000),
+        );
+      if (productId === 'prod-variant-2')
+        return Promise.resolve(
+          buildProduct('prod-variant-2', 'Item Two', 20000),
+        );
       return Promise.resolve(null);
     });
     createStockReservation.execute
       .mockResolvedValueOnce(buildReservation('res-1'))
       .mockRejectedValueOnce(new InsufficientStockError(0, 1));
 
-    await expect(useCase.execute(VALID_INPUT)).rejects.toThrow(ItemUnavailableAtCheckoutError);
+    await expect(useCase.execute(VALID_INPUT)).rejects.toThrow(
+      ItemUnavailableAtCheckoutError,
+    );
 
-    expect(releaseStockReservation.execute).toHaveBeenCalledWith({ reservationId: 'res-1' });
+    expect(releaseStockReservation.execute).toHaveBeenCalledWith({
+      reservationId: 'res-1',
+    });
     expect(orders.create).not.toHaveBeenCalled();
   });
 });

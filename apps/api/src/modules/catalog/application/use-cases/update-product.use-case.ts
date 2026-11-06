@@ -5,9 +5,19 @@ import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { ProductPolicy } from '../../domain/policies/product-policy';
-import { PRODUCT_REPOSITORY, type ProductRepository } from '../../domain/repositories/product.repository';
-import { CATEGORY_REPOSITORY, type CategoryRepository } from '../../domain/repositories/category.repository';
-import { BRAND_REPOSITORY, type BrandRepository } from '../../domain/repositories/brand.repository';
+import type { ProductPlacementValue } from '../../domain/constants/product-placement.constants';
+import {
+  PRODUCT_REPOSITORY,
+  type ProductRepository,
+} from '../../domain/repositories/product.repository';
+import {
+  CATEGORY_REPOSITORY,
+  type CategoryRepository,
+} from '../../domain/repositories/category.repository';
+import {
+  BRAND_REPOSITORY,
+  type BrandRepository,
+} from '../../domain/repositories/brand.repository';
 import {
   BrandNotFoundError,
   CategoryNotFoundError,
@@ -31,6 +41,7 @@ export interface UpdateProductInput {
   isBestSeller?: boolean;
   isNewArrival?: boolean;
   isGiftBox?: boolean;
+  placements?: ProductPlacementValue[];
   metaTitle?: string | null;
   metaDescription?: string | null;
   ogImageUrl?: string | null;
@@ -42,7 +53,8 @@ export interface UpdateProductInput {
 export class UpdateProductUseCase {
   constructor(
     @Inject(PRODUCT_REPOSITORY) private readonly products: ProductRepository,
-    @Inject(CATEGORY_REPOSITORY) private readonly categories: CategoryRepository,
+    @Inject(CATEGORY_REPOSITORY)
+    private readonly categories: CategoryRepository,
     @Inject(BRAND_REPOSITORY) private readonly brands: BrandRepository,
     private readonly storeContext: StoreContext,
   ) {}
@@ -93,7 +105,10 @@ export class UpdateProductUseCase {
     product.rename(name);
     product.changeSlug(slug);
     product.changeSku(sku);
-    product.updateDescriptions(input.shortDescription ?? null, input.description ?? null);
+    product.updateDescriptions(
+      input.shortDescription ?? null,
+      input.description ?? null,
+    );
     product.updatePricing(price, discountPrice);
     product.assignCategory(input.categoryId);
     product.assignBrand(input.brandId ?? null);
@@ -103,10 +118,17 @@ export class UpdateProductUseCase {
       isNewArrival: input.isNewArrival,
       isGiftBox: input.isGiftBox,
     });
+    if (input.placements !== undefined) {
+      product.assignPlacements(input.placements);
+    }
     product.updateSeo(
       SeoMetadata.create({
         metaTitle: input.metaTitle ?? name,
-        metaDescription: input.metaDescription ?? input.shortDescription ?? input.description ?? null,
+        metaDescription:
+          input.metaDescription ??
+          input.shortDescription ??
+          input.description ??
+          null,
         ogImageUrl: input.ogImageUrl ?? product.seo.ogImageUrl,
       }),
     );

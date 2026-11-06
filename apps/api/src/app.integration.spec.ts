@@ -34,12 +34,18 @@ describe('API Layer (integration)', () => {
   let accessToken: string;
 
   beforeAll(async () => {
-    const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+    const moduleRef = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
     app = moduleRef.createNestApplication();
 
     app.setGlobalPrefix('v1', { exclude: ['health', 'health/ready'] });
     app.useGlobalPipes(
-      new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }),
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
     );
     app.useGlobalInterceptors(new ResponseEnvelopeInterceptor());
     await app.init();
@@ -47,8 +53,14 @@ describe('API Layer (integration)', () => {
 
     prisma = moduleRef.get(PrismaService);
 
-    const superAdminRole = await prisma.role.findFirstOrThrow({ where: { key: 'SUPER_ADMIN' } });
-    const testAdmin = await createTestAdmin(prisma, superAdminRole.id, 'app-integration');
+    const superAdminRole = await prisma.role.findFirstOrThrow({
+      where: { key: 'SUPER_ADMIN' },
+    });
+    const testAdmin = await createTestAdmin(
+      prisma,
+      superAdminRole.id,
+      'app-integration',
+    );
     testAdminId = testAdmin.id;
 
     const login = await request(server)
@@ -95,7 +107,9 @@ describe('API Layer (integration)', () => {
 
   describe('Exception mapping', () => {
     it('maps a *NotFoundError DomainError to 404 with its own error code', async () => {
-      const response = await request(server).get('/v1/catalog/collections/does-not-exist/products');
+      const response = await request(server).get(
+        '/v1/catalog/collections/does-not-exist/products',
+      );
       expect(response.status).toBe(404);
       expect(err(response).error.code).toBe('COLLECTION_NOT_FOUND');
     });
@@ -145,6 +159,10 @@ describe('API Layer (integration)', () => {
   describe('Full guest storefront -> cart -> checkout -> order flow', () => {
     it('browses, adds to cart, places an order, and reads it back as staff', async () => {
       const guestToken = `guest-${randomUUID()}`;
+      // Unique per run (not a fixed literal) — RequestPhoneVerificationUseCase
+      // enforces a real 60s per-phone resend cooldown against this same DB,
+      // which a hardcoded number would trip on a quick repeat test run.
+      const phone = `+9647${Date.now().toString().slice(-9)}`;
 
       const variant = await prisma.productVariant.findFirstOrThrow({
         where: { sku: 'ZA-PANT-RELAX-001-BLK-M' },
@@ -153,7 +171,9 @@ describe('API Layer (integration)', () => {
         where: { name: 'Standard Delivery' },
       });
 
-      const featured = await request(server).get('/v1/catalog/storefront/best-sellers');
+      const featured = await request(server).get(
+        '/v1/catalog/storefront/best-sellers',
+      );
       expect(featured.status).toBe(200);
 
       const addItem = await request(server)
@@ -161,10 +181,27 @@ describe('API Layer (integration)', () => {
         .send({ guestToken, variantId: variant.id, quantity: 1 });
       expect(addItem.status).toBe(201);
 
-      const cart = await request(server).get(`/v1/checkout/cart?guestToken=${guestToken}`);
+      const cart = await request(server).get(
+        `/v1/checkout/cart?guestToken=${guestToken}`,
+      );
       const cartBody = ok<{ items: unknown[] }>(cart);
       expect(cart.status).toBe(200);
       expect(cartBody.data.items).toHaveLength(1);
+
+      // Phone is required and WhatsApp-verified before an order can be
+      // placed (product decision) — exercised for real here, through the
+      // actual HTTP endpoints, using the dev-mode revealed code (no real
+      // WhatsApp account in this environment, same convention as
+      // RequestPasswordResetUseCase.revealToken).
+      const requestCode = await request(server)
+        .post('/v1/checkout/phone-verification/request')
+        .send({ phone });
+      expect(requestCode.status).toBe(201);
+      const { code } = ok<{ code: string }>(requestCode).data;
+      const confirmCode = await request(server)
+        .post('/v1/checkout/phone-verification/confirm')
+        .send({ phone, code });
+      expect(confirmCode.status).toBe(201);
 
       const placeOrder = await request(server)
         .post('/v1/checkout/place-order')
@@ -172,9 +209,9 @@ describe('API Layer (integration)', () => {
           guestToken,
           customerName: 'Integration Test Customer',
           customerEmail: 'integration-test@example.com',
-          customerPhone: '+9647700000000',
+          customerPhone: phone,
           shippingFullName: 'Integration Test Customer',
-          shippingPhone: '+9647700000000',
+          shippingPhone: phone,
           shippingLine1: '1 Test Street',
           shippingCity: 'Baghdad',
           shippingGovernorate: 'Baghdad',
@@ -182,22 +219,29 @@ describe('API Layer (integration)', () => {
           shippingMethodId: shippingMethod.id,
           paymentMethod: 'COD',
         });
-      const orderBody = ok<{ id: string; status: string; paymentStatus: string; items: unknown[] }>(
-        placeOrder,
-      );
+      const orderBody = ok<{
+        id: string;
+        status: string;
+        paymentStatus: string;
+        items: unknown[];
+      }>(placeOrder);
 
       expect(placeOrder.status).toBe(201);
       expect(orderBody.data.status).toBe('CONFIRMED');
       expect(orderBody.data.paymentStatus).toBe('AWAITING_COLLECTION');
       const orderId = orderBody.data.id;
 
-      const getOrderUnauthenticated = await request(server).get(`/v1/orders/${orderId}`);
+      const getOrderUnauthenticated = await request(server).get(
+        `/v1/orders/${orderId}`,
+      );
       expect(getOrderUnauthenticated.status).toBe(401);
 
       const getOrderAsStaff = await request(server)
         .get(`/v1/orders/${orderId}`)
         .set('Authorization', `Bearer ${accessToken}`);
-      const staffOrderBody = ok<{ id: string; items: unknown[] }>(getOrderAsStaff);
+      const staffOrderBody = ok<{ id: string; items: unknown[] }>(
+        getOrderAsStaff,
+      );
       expect(getOrderAsStaff.status).toBe(200);
       expect(staffOrderBody.data.id).toBe(orderId);
       expect(staffOrderBody.data.items).toHaveLength(1);

@@ -80,6 +80,12 @@ async function performFetch<T>(
   accessToken: string | null,
 ): Promise<{ response: Response; body: ApiResponse<T> | null }> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
+    // Next's server-side fetch patch defaults to `force-cache`, so without
+    // this every API call from a Server Component (product pages included)
+    // would cache indefinitely and never pick up admin edits — prices,
+    // stock, and media would silently go stale instead of erroring, which
+    // is worse. Catalog data changes too often for caching to be safe here.
+    cache: 'no-store',
     ...rest,
     headers: {
       'Content-Type': 'application/json',

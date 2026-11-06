@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { Copy, Pencil, Plus, Trash2 } from 'lucide-react';
 import { Button, DataTable, Dialog, Input, Select, useToast } from '@za/ui';
@@ -15,6 +15,7 @@ import {
   useUpdateVariantMutation,
 } from '@/features/products/variants-api';
 import { useColorsQuery } from '@/features/colors/api';
+import { ColorPicker } from '@/features/colors/color-picker';
 import { useSizesQuery } from '@/features/sizes/api';
 
 const variantSchema = z.object({
@@ -22,7 +23,11 @@ const variantSchema = z.object({
   barcode: z.string().optional(),
   colorId: z.string().optional(),
   sizeId: z.string().optional(),
-  priceOverride: z.coerce.number().min(0).optional(),
+  priceOverride: z.coerce
+    .number()
+    .min(0)
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
 });
 
 type VariantFormValues = z.infer<typeof variantSchema>;
@@ -40,33 +45,50 @@ function VariantForm({
   onSubmit: (values: VariantFormValues) => Promise<void>;
   isSubmitting: boolean;
 }) {
-  const { data: colors } = useColorsQuery({ limit: 100 });
   const { data: sizes } = useSizesQuery({ limit: 100 });
   const {
     register,
+    control,
     handleSubmit,
     formState: { errors },
-  } = useForm<VariantFormValues>({ resolver: zodResolver(variantSchema), defaultValues });
+  } = useForm<VariantFormValues>({
+    resolver: zodResolver(variantSchema),
+    defaultValues,
+  });
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
       <Input label="SKU" errorText={errors.sku?.message} {...register('sku')} />
       <Input label="Barcode" {...register('barcode')} />
+      <Controller
+        control={control}
+        name="colorId"
+        render={({ field }) => (
+          <ColorPicker value={field.value} onChange={field.onChange} />
+        )}
+      />
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <Select
-          label="Color"
-          placeholder="No color"
-          options={(colors?.data ?? []).map((color) => ({ value: color.id, label: color.name }))}
-          {...register('colorId')}
-        />
         <Select
           label="Size"
           placeholder="No size"
-          options={(sizes?.data ?? []).map((size) => ({ value: size.id, label: size.label }))}
+          options={(sizes?.data ?? []).map((size) => ({
+            value: size.id,
+            label: size.label,
+          }))}
           {...register('sizeId')}
         />
       </div>
-      <Input label="Price override" type="number" step="0.01" helperText="Leave blank to use the product price" {...register('priceOverride')} />
+      <Input
+        label="Price override"
+        type="number"
+        step="0.01"
+        helperText="Leave blank to use the product price"
+        {...register('priceOverride')}
+      />
       <Button type="submit" isLoading={isSubmitting} className="self-end">
         Save
       </Button>
@@ -80,19 +102,32 @@ export function VariantsTab({ productId }: { productId: string }) {
   const updateMutation = useUpdateVariantMutation(productId);
   const deleteMutation = useDeleteVariantMutation(productId);
   const { showToast } = useToast();
+  const { data: colors } = useColorsQuery({ limit: 100 });
+  const colorById = new Map(
+    (colors?.data ?? []).map((color) => [color.id, color]),
+  );
 
   async function copyId(id: string) {
     try {
       await navigator.clipboard.writeText(id);
-      showToast({ tone: 'success', title: 'Variant ID copied', description: 'Paste it into Inventory → Stock to manage this variant’s stock.' });
+      showToast({
+        tone: 'success',
+        title: 'Variant ID copied',
+        description:
+          'Paste it into Inventory → Stock to manage this variant’s stock.',
+      });
     } catch {
       showToast({ tone: 'danger', title: 'Could not copy to clipboard' });
     }
   }
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
-  const [deletingVariant, setDeletingVariant] = useState<ProductVariant | null>(null);
+  const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(
+    null,
+  );
+  const [deletingVariant, setDeletingVariant] = useState<ProductVariant | null>(
+    null,
+  );
 
   async function handleCreate(values: VariantFormValues) {
     try {
@@ -100,7 +135,11 @@ export function VariantsTab({ productId }: { productId: string }) {
       showToast({ tone: 'success', title: 'Variant created' });
       setIsCreateOpen(false);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not create variant', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not create variant',
+        description: describeError(error),
+      });
     }
   }
 
@@ -111,7 +150,11 @@ export function VariantsTab({ productId }: { productId: string }) {
       showToast({ tone: 'success', title: 'Variant updated' });
       setEditingVariant(null);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not update variant', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not update variant',
+        description: describeError(error),
+      });
     }
   }
 
@@ -122,21 +165,56 @@ export function VariantsTab({ productId }: { productId: string }) {
       showToast({ tone: 'success', title: 'Variant deleted' });
       setDeletingVariant(null);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not delete variant', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not delete variant',
+        description: describeError(error),
+      });
     }
   }
 
   return (
     <div>
       <div className="mb-4 flex justify-end">
-        <Button leadingIcon={<Plus className="h-4 w-4" />} onClick={() => setIsCreateOpen(true)}>
+        <Button
+          leadingIcon={<Plus className="h-4 w-4" />}
+          onClick={() => setIsCreateOpen(true)}
+        >
           Add variant
         </Button>
       </div>
       <DataTable
         columns={[
-          { key: 'sku', header: 'SKU', render: (row: ProductVariant) => row.sku },
-          { key: 'barcode', header: 'Barcode', render: (row: ProductVariant) => row.barcode ?? '—' },
+          {
+            key: 'sku',
+            header: 'SKU',
+            render: (row: ProductVariant) => row.sku,
+          },
+          {
+            key: 'color',
+            header: 'Color',
+            render: (row: ProductVariant) => {
+              const color = row.colorId
+                ? colorById.get(row.colorId)
+                : undefined;
+              if (!color) return '—';
+              return (
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 shrink-0 rounded-full border border-neutral-300 dark:border-neutral-600"
+                    style={{ backgroundColor: color.hexCode }}
+                    aria-hidden="true"
+                  />
+                  {color.name}
+                </div>
+              );
+            },
+          },
+          {
+            key: 'barcode',
+            header: 'Barcode',
+            render: (row: ProductVariant) => row.barcode ?? '—',
+          },
           {
             key: 'priceOverride',
             header: 'Price override',
@@ -170,7 +248,7 @@ export function VariantsTab({ productId }: { productId: string }) {
                   type="button"
                   aria-label={`Delete ${row.sku}`}
                   onClick={() => setDeletingVariant(row)}
-                  className="rounded-md p-1.5 text-neutral-500 hover:bg-danger-500/10 hover:text-danger-500 dark:text-neutral-400"
+                  className="hover:bg-danger-500/10 hover:text-danger-500 rounded-md p-1.5 text-neutral-500 dark:text-neutral-400"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -183,14 +261,27 @@ export function VariantsTab({ productId }: { productId: string }) {
         isLoading={isLoading}
         emptyTitle="No variants yet"
         emptyDescription="Add a variant for each color/size combination this product is sold in."
-        emptyAction={<Button onClick={() => setIsCreateOpen(true)}>Add variant</Button>}
+        emptyAction={
+          <Button onClick={() => setIsCreateOpen(true)}>Add variant</Button>
+        }
       />
 
-      <Dialog open={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Add variant">
-        <VariantForm onSubmit={handleCreate} isSubmitting={createMutation.isPending} />
+      <Dialog
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add variant"
+      >
+        <VariantForm
+          onSubmit={handleCreate}
+          isSubmitting={createMutation.isPending}
+        />
       </Dialog>
 
-      <Dialog open={editingVariant !== null} onClose={() => setEditingVariant(null)} title="Edit variant">
+      <Dialog
+        open={editingVariant !== null}
+        onClose={() => setEditingVariant(null)}
+        title="Edit variant"
+      >
         {editingVariant && (
           <VariantForm
             defaultValues={{
@@ -198,7 +289,9 @@ export function VariantsTab({ productId }: { productId: string }) {
               barcode: editingVariant.barcode ?? undefined,
               colorId: editingVariant.colorId ?? undefined,
               sizeId: editingVariant.sizeId ?? undefined,
-              priceOverride: editingVariant.priceOverride ? Number(editingVariant.priceOverride) : undefined,
+              priceOverride: editingVariant.priceOverride
+                ? Number(editingVariant.priceOverride)
+                : undefined,
             }}
             onSubmit={handleUpdate}
             isSubmitting={updateMutation.isPending}
@@ -216,7 +309,11 @@ export function VariantsTab({ productId }: { productId: string }) {
             <Button variant="outline" onClick={() => setDeletingVariant(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" isLoading={deleteMutation.isPending} onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              isLoading={deleteMutation.isPending}
+              onClick={handleDelete}
+            >
               Delete
             </Button>
           </>

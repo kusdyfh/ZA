@@ -1,4 +1,11 @@
-import { IsBoolean, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
+import { IRAQ_GOVERNORATE_NAMES } from '@za/shared';
 
 export class CreateAddressDto {
   @IsString()
@@ -21,12 +28,11 @@ export class CreateAddressDto {
   @MinLength(1)
   city!: string;
 
-  @IsString()
-  @MinLength(1)
+  /** Delivery is Iraq-only (product decision) — a closed list, not free text. */
+  @IsIn(IRAQ_GOVERNORATE_NAMES)
   governorate!: string;
 
-  @IsString()
-  @MinLength(1)
+  @IsIn(['Iraq'])
   country!: string;
 
   @IsOptional()

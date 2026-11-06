@@ -25,6 +25,7 @@ export class ProductMapper {
       isBestSeller: record.isBestSeller,
       isNewArrival: record.isNewArrival,
       isGiftBox: record.isGiftBox,
+      placements: record.placements,
       seo: SeoMetadata.create({
         metaTitle: record.metaTitle,
         metaDescription: record.metaDescription,

@@ -49,7 +49,8 @@ export type WiredEventType = (typeof WIRED_EVENT_TYPES)[number];
 export interface OrderPlacedEvent {
   orderId: string;
   orderNumber: string;
-  customerEmail: string;
+  /** Optional at checkout (product decision) — phone is required instead. */
+  customerEmail: string | null;
   total: number;
   currencyCode: string;
 }
@@ -57,7 +58,7 @@ export interface OrderPlacedEvent {
 export interface OrderStatusChangedEvent {
   orderId: string;
   orderNumber: string;
-  customerEmail: string;
+  customerEmail: string | null;
   fromStatus: string;
   toStatus: string;
 }
@@ -85,7 +86,7 @@ export interface PasswordResetRequestedEvent {
 export interface PaymentCapturedEvent {
   orderId: string;
   orderNumber: string;
-  customerEmail: string;
+  customerEmail: string | null;
   amount: number;
   currencyCode: string;
   provider: string;
@@ -103,7 +104,7 @@ export interface PaymentFailedEvent {
 export interface PaymentRefundedEvent {
   orderId: string;
   orderNumber: string;
-  customerEmail: string;
+  customerEmail: string | null;
   amount: number;
   currencyCode: string;
 }
@@ -112,7 +113,7 @@ export interface ShipmentDispatchedEvent {
   shipmentId: string;
   orderId: string;
   orderNumber: string;
-  customerEmail: string;
+  customerEmail: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
 }
@@ -121,7 +122,7 @@ export interface ShipmentDeliveredEvent {
   shipmentId: string;
   orderId: string;
   orderNumber: string;
-  customerEmail: string;
+  customerEmail: string | null;
 }
 
 export type EventPayloadMap = {

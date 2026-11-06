@@ -1,6 +1,13 @@
 import { randomBytes } from 'node:crypto';
-import { ORDER_STATUS, type OrderStatusValue } from '../constants/order-status.constants';
-import { PAYMENT_METHOD, type PaymentMethodValue } from '../constants/payment-method.constants';
+import { isValidIraqCity } from '@za/shared';
+import {
+  ORDER_STATUS,
+  type OrderStatusValue,
+} from '../constants/order-status.constants';
+import {
+  PAYMENT_METHOD,
+  type PaymentMethodValue,
+} from '../constants/payment-method.constants';
 import {
   CancelReasonRequiredError,
   EmptyOrderNoteError,
@@ -12,7 +19,8 @@ import {
 
 export interface ContactInfo {
   name: string;
-  email: string;
+  /** Optional at checkout (product decision) — phone is required instead. */
+  email?: string | null;
   phone: string;
 }
 
@@ -40,16 +48,17 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  * table, no additions. `CANCELLED` is reachable from every pre-`SHIPPED`
  * status; `RETURNED` only from `DELIVERED`; both are terminal.
  */
-const LEGAL_TRANSITIONS: Record<OrderStatusValue, readonly OrderStatusValue[]> = {
-  [ORDER_STATUS.PENDING]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.PREPARING]: [ORDER_STATUS.PACKED, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.PACKED]: [ORDER_STATUS.SHIPPED, ORDER_STATUS.CANCELLED],
-  [ORDER_STATUS.SHIPPED]: [ORDER_STATUS.DELIVERED],
-  [ORDER_STATUS.DELIVERED]: [ORDER_STATUS.RETURNED],
-  [ORDER_STATUS.CANCELLED]: [],
-  [ORDER_STATUS.RETURNED]: [],
-};
+const LEGAL_TRANSITIONS: Record<OrderStatusValue, readonly OrderStatusValue[]> =
+  {
+    [ORDER_STATUS.PENDING]: [ORDER_STATUS.CONFIRMED, ORDER_STATUS.CANCELLED],
+    [ORDER_STATUS.CONFIRMED]: [ORDER_STATUS.PREPARING, ORDER_STATUS.CANCELLED],
+    [ORDER_STATUS.PREPARING]: [ORDER_STATUS.PACKED, ORDER_STATUS.CANCELLED],
+    [ORDER_STATUS.PACKED]: [ORDER_STATUS.SHIPPED, ORDER_STATUS.CANCELLED],
+    [ORDER_STATUS.SHIPPED]: [ORDER_STATUS.DELIVERED],
+    [ORDER_STATUS.DELIVERED]: [ORDER_STATUS.RETURNED],
+    [ORDER_STATUS.CANCELLED]: [],
+    [ORDER_STATUS.RETURNED]: [],
+  };
 
 /**
  * The single home for every Order business rule, per this epic's
@@ -60,7 +69,10 @@ const LEGAL_TRANSITIONS: Record<OrderStatusValue, readonly OrderStatusValue[]> =
  */
 export class OrderPolicy {
   /** The one place the legal status graph is expressed — see docs/product/07-ORDERS.md. */
-  static assertValidTransition(from: OrderStatusValue, to: OrderStatusValue): void {
+  static assertValidTransition(
+    from: OrderStatusValue,
+    to: OrderStatusValue,
+  ): void {
     const allowed = LEGAL_TRANSITIONS[from];
     if (!allowed.includes(to)) {
       throw new IllegalOrderStatusTransitionError(from, to);
@@ -106,8 +118,10 @@ export class OrderPolicy {
     if (!contact.name || contact.name.trim().length === 0) {
       throw new InvalidContactInfoError('Customer name is required.');
     }
-    if (!contact.email || !EMAIL_PATTERN.test(contact.email.trim())) {
-      throw new InvalidContactInfoError('A valid email address is required.');
+    if (contact.email && !EMAIL_PATTERN.test(contact.email.trim())) {
+      throw new InvalidContactInfoError(
+        'Enter a valid email address, or leave it blank.',
+      );
     }
     if (!contact.phone || contact.phone.trim().length === 0) {
       throw new InvalidContactInfoError('Phone is required.');
@@ -133,11 +147,20 @@ export class OrderPolicy {
     if (!address.country || address.country.trim().length === 0) {
       throw new InvalidShippingAddressError('country');
     }
+    // Delivery is Iraq-only (product decision) — city must be one of the
+    // governorate's own districts, not an arbitrary string paired with it.
+    if (!isValidIraqCity(address.governorate, address.city)) {
+      throw new InvalidShippingAddressError('city');
+    }
   }
 
   /** total = subtotal - discountTotal + shippingFee + taxTotal, rounded to 2 decimals. */
   static computeTotal(totals: OrderTotalsInput): number {
-    const total = totals.subtotal - totals.discountTotal + totals.shippingFee + totals.taxTotal;
+    const total =
+      totals.subtotal -
+      totals.discountTotal +
+      totals.shippingFee +
+      totals.taxTotal;
     return Math.round(total * 100) / 100;
   }
 

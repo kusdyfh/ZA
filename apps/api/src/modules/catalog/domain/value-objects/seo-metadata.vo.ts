@@ -15,9 +15,10 @@ export interface SeoMetadataInput {
  * §SEO ("every product has a meta title and meta description... always
  * admin-overridable"). Auto-generated defaults (from name/description)
  * are computed by the calling use-case, not this VO — this VO only
- * normalizes and holds whatever was ultimately decided. `ogImageUrl` is
- * a plain admin-settable string here; "defaults to the primary product
- * image" requires Media, out of this epic's scope.
+ * normalizes and holds whatever was ultimately decided. `ogImageUrl`'s
+ * "defaults to the primary product image" rule is enforced by
+ * `SetProductMediaUseCase`, which keeps it synced to the cover image;
+ * this VO just holds whatever value it's given.
  */
 export class SeoMetadata {
   private constructor(private readonly props: SeoMetadataProps) {}
@@ -47,7 +48,9 @@ export class SeoMetadata {
   }
 }
 
-function normalizeOptionalText(value: string | null | undefined): string | null {
+function normalizeOptionalText(
+  value: string | null | undefined,
+): string | null {
   if (!value) {
     return null;
   }

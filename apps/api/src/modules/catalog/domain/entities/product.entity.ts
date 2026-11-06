@@ -1,7 +1,11 @@
 import type { Slug } from '../value-objects/slug.vo';
 import type { Money } from '../value-objects/money.vo';
 import type { SeoMetadata } from '../value-objects/seo-metadata.vo';
-import { PRODUCT_STATUS, type ProductStatusValue } from '../constants/product-status.constants';
+import {
+  PRODUCT_STATUS,
+  type ProductStatusValue,
+} from '../constants/product-status.constants';
+import type { ProductPlacementValue } from '../constants/product-placement.constants';
 import { ProductPolicy } from '../policies/product-policy';
 
 export interface ProductProps {
@@ -21,6 +25,8 @@ export interface ProductProps {
   isBestSeller: boolean;
   isNewArrival: boolean;
   isGiftBox: boolean;
+  /** Which homepage sections this product is curated into — see ProductPlacement. */
+  placements: ProductPlacementValue[];
   seo: SeoMetadata;
   /** Ordered bullet points — see docs/epics/EPIC-03B "Product Highlights". */
   highlights: string[];
@@ -68,7 +74,10 @@ export class Product {
     this.props.sku = ProductPolicy.validateSku(sku);
   }
 
-  updateDescriptions(shortDescription: string | null, description: string | null): void {
+  updateDescriptions(
+    shortDescription: string | null,
+    description: string | null,
+  ): void {
     this.props.shortDescription = shortDescription;
     this.props.description = description;
   }
@@ -80,11 +89,14 @@ export class Product {
   }
 
   updateHighlights(highlights: string[]): void {
-    this.props.highlights = highlights.map((h) => h.trim()).filter((h) => h.length > 0);
+    this.props.highlights = highlights
+      .map((h) => h.trim())
+      .filter((h) => h.length > 0);
   }
 
   updateRichContent(richContent: string | null): void {
-    this.props.richContent = richContent && richContent.trim().length > 0 ? richContent : null;
+    this.props.richContent =
+      richContent && richContent.trim().length > 0 ? richContent : null;
   }
 
   assignCategory(categoryId: string): void {
@@ -96,10 +108,18 @@ export class Product {
   }
 
   setMerchandisingFlags(flags: MerchandisingFlags): void {
-    if (flags.isFeatured !== undefined) this.props.isFeatured = flags.isFeatured;
-    if (flags.isBestSeller !== undefined) this.props.isBestSeller = flags.isBestSeller;
-    if (flags.isNewArrival !== undefined) this.props.isNewArrival = flags.isNewArrival;
+    if (flags.isFeatured !== undefined)
+      this.props.isFeatured = flags.isFeatured;
+    if (flags.isBestSeller !== undefined)
+      this.props.isBestSeller = flags.isBestSeller;
+    if (flags.isNewArrival !== undefined)
+      this.props.isNewArrival = flags.isNewArrival;
     if (flags.isGiftBox !== undefined) this.props.isGiftBox = flags.isGiftBox;
+  }
+
+  /** Replaces the full set — the admin form always submits its complete current selection, never a delta. */
+  assignPlacements(placements: ProductPlacementValue[]): void {
+    this.props.placements = placements;
   }
 
   updateSeo(seo: SeoMetadata): void {
@@ -182,6 +202,10 @@ export class Product {
 
   get isGiftBox(): boolean {
     return this.props.isGiftBox;
+  }
+
+  get placements(): ProductPlacementValue[] {
+    return this.props.placements;
   }
 
   get seo(): SeoMetadata {

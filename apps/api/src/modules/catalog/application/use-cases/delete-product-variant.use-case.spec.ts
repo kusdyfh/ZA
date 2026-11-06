@@ -2,13 +2,22 @@ import { DeleteProductVariantUseCase } from './delete-product-variant.use-case';
 import type { ProductVariantRepository } from '../../domain/repositories/product-variant.repository';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
-import { ProductVariant, type ProductVariantProps } from '../../domain/entities/product-variant.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
+import {
+  ProductVariant,
+  type ProductVariantProps,
+} from '../../domain/entities/product-variant.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
 import { PRODUCT_STATUS } from '../../domain/constants/product-status.constants';
-import { LastVariantOfActiveProductError, ProductVariantNotFoundError } from '../../domain/errors/catalog.errors';
+import {
+  LastVariantOfActiveProductError,
+  ProductVariantNotFoundError,
+} from '../../domain/errors/catalog.errors';
 
 function buildProduct(overrides: Partial<ProductProps> = {}): Product {
   return Product.reconstitute({
@@ -28,6 +37,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -37,7 +47,9 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
   });
 }
 
-function buildVariant(overrides: Partial<ProductVariantProps> = {}): ProductVariant {
+function buildVariant(
+  overrides: Partial<ProductVariantProps> = {},
+): ProductVariant {
   return ProductVariant.reconstitute({
     id: 'variant-1',
     storeId: 'store-1',
@@ -96,7 +108,9 @@ describe('DeleteProductVariantUseCase', () => {
 
   it('blocks removing the last variant of an Active product', async () => {
     variants.findById.mockResolvedValue(buildVariant());
-    products.findById.mockResolvedValue(buildProduct({ status: PRODUCT_STATUS.ACTIVE }));
+    products.findById.mockResolvedValue(
+      buildProduct({ status: PRODUCT_STATUS.ACTIVE }),
+    );
     variants.countByProduct.mockResolvedValue(1);
 
     await expect(useCase.execute({ variantId: 'variant-1' })).rejects.toThrow(
@@ -107,7 +121,9 @@ describe('DeleteProductVariantUseCase', () => {
 
   it('allows removing a variant when the Active product has others remaining', async () => {
     variants.findById.mockResolvedValue(buildVariant());
-    products.findById.mockResolvedValue(buildProduct({ status: PRODUCT_STATUS.ACTIVE }));
+    products.findById.mockResolvedValue(
+      buildProduct({ status: PRODUCT_STATUS.ACTIVE }),
+    );
     variants.countByProduct.mockResolvedValue(2);
 
     await useCase.execute({ variantId: 'variant-1' });
@@ -117,7 +133,9 @@ describe('DeleteProductVariantUseCase', () => {
 
   it('allows removing the last variant of a Draft product', async () => {
     variants.findById.mockResolvedValue(buildVariant());
-    products.findById.mockResolvedValue(buildProduct({ status: PRODUCT_STATUS.DRAFT }));
+    products.findById.mockResolvedValue(
+      buildProduct({ status: PRODUCT_STATUS.DRAFT }),
+    );
     variants.countByProduct.mockResolvedValue(1);
 
     await useCase.execute({ variantId: 'variant-1' });

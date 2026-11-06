@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiFetch } from '@/lib/api/client';
 import { useCustomerAuth } from '@/lib/auth/auth-context';
-import type { CardCheckoutSession, InitiateCardCheckoutInput, Order, PlaceOrderInput } from './types';
+import type {
+  CardCheckoutSession,
+  InitiateCardCheckoutInput,
+  Order,
+  PhoneVerificationConfirmResult,
+  PhoneVerificationRequestResult,
+  PlaceOrderInput,
+} from './types';
 
 const ORDERS_KEY = 'orders';
 const CONFIRMATION_KEY = 'order-confirmation';
@@ -21,7 +28,11 @@ export function usePlaceOrderMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (values: PlaceOrderInput) =>
-      apiFetch<Order>('/checkout/place-order', { method: 'POST', auth: false, body: values }),
+      apiFetch<Order>('/checkout/place-order', {
+        method: 'POST',
+        auth: false,
+        body: values,
+      }),
     onSuccess: (order, { guestToken }) => {
       queryClient.setQueryData([CONFIRMATION_KEY, order.id], order);
       return queryClient.invalidateQueries({ queryKey: ['cart', guestToken] });
@@ -38,7 +49,40 @@ export function usePlaceOrderMutation() {
 export function useInitiateCardCheckoutMutation() {
   return useMutation({
     mutationFn: (values: InitiateCardCheckoutInput) =>
-      apiFetch<CardCheckoutSession>('/checkout/card-sessions', { method: 'POST', auth: false, body: values }),
+      apiFetch<CardCheckoutSession>('/checkout/card-sessions', {
+        method: 'POST',
+        auth: false,
+        body: values,
+      }),
+  });
+}
+
+/** Sends (or resends) the WhatsApp verification code — phone is required and verified before `usePlaceOrderMutation` will succeed. */
+export function useRequestPhoneVerificationMutation() {
+  return useMutation({
+    mutationFn: (phone: string) =>
+      apiFetch<PhoneVerificationRequestResult>(
+        '/checkout/phone-verification/request',
+        {
+          method: 'POST',
+          auth: false,
+          body: { phone },
+        },
+      ),
+  });
+}
+
+export function useConfirmPhoneVerificationMutation() {
+  return useMutation({
+    mutationFn: (values: { phone: string; code: string }) =>
+      apiFetch<PhoneVerificationConfirmResult>(
+        '/checkout/phone-verification/confirm',
+        {
+          method: 'POST',
+          auth: false,
+          body: values,
+        },
+      ),
   });
 }
 

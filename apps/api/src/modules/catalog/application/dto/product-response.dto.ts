@@ -1,4 +1,5 @@
 import type { Product } from '../../domain/entities/product.entity';
+import type { ProductPlacementValue } from '../../domain/constants/product-placement.constants';
 
 export class ProductResponseDto {
   id!: string;
@@ -17,6 +18,7 @@ export class ProductResponseDto {
   isBestSeller!: boolean;
   isNewArrival!: boolean;
   isGiftBox!: boolean;
+  placements!: ProductPlacementValue[];
   isVisibleInCatalog!: boolean;
   metaTitle!: string | null;
   metaDescription!: string | null;
@@ -40,6 +42,7 @@ export class ProductResponseDto {
     dto.isBestSeller = product.isBestSeller;
     dto.isNewArrival = product.isNewArrival;
     dto.isGiftBox = product.isGiftBox;
+    dto.placements = product.placements;
     dto.isVisibleInCatalog = product.isVisibleInCatalog();
     dto.metaTitle = product.seo.metaTitle;
     dto.metaDescription = product.seo.metaDescription;

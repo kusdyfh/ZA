@@ -64,6 +64,7 @@ function buildProduct(discountPrice: Money | null = null): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -109,8 +110,15 @@ describe('GetCartUseCase', () => {
       replaceTags: jest.fn(),
       listTagIds: jest.fn(),
     };
-    storeContext = { getCurrentStoreId: jest.fn().mockResolvedValue('store-1') } as unknown as StoreContext;
-    useCase = new GetCartUseCase(carts, productVariants, products, storeContext);
+    storeContext = {
+      getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
+    } as unknown as StoreContext;
+    useCase = new GetCartUseCase(
+      carts,
+      productVariants,
+      products,
+      storeContext,
+    );
   });
 
   it('resolves live pricing and totals for each cart item', async () => {
@@ -135,7 +143,9 @@ describe('GetCartUseCase', () => {
 
   it('prefers the variant price override over the product price', async () => {
     carts.findOrCreateByToken.mockResolvedValue(buildCart());
-    productVariants.findById.mockResolvedValue(buildVariant(Money.create(35000, 'IQD')));
+    productVariants.findById.mockResolvedValue(
+      buildVariant(Money.create(35000, 'IQD')),
+    );
     products.findById.mockResolvedValue(buildProduct());
 
     const result = await useCase.execute({ guestToken: 'guest-token-abc' });
@@ -146,7 +156,9 @@ describe('GetCartUseCase', () => {
   it('prefers the product discount price over the base price when no override exists', async () => {
     carts.findOrCreateByToken.mockResolvedValue(buildCart());
     productVariants.findById.mockResolvedValue(buildVariant());
-    products.findById.mockResolvedValue(buildProduct(Money.create(30000, 'IQD')));
+    products.findById.mockResolvedValue(
+      buildProduct(Money.create(30000, 'IQD')),
+    );
 
     const result = await useCase.execute({ guestToken: 'guest-token-abc' });
 

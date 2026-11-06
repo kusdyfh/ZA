@@ -1,5 +1,19 @@
-import { Body, Controller, Get, Param, Patch, Post, Put, Query } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+} from '@nestjs/common';
+import {
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiBearerAuth,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CreateProductUseCase } from '../application/use-cases/create-product.use-case';
 import { UpdateProductUseCase } from '../application/use-cases/update-product.use-case';
 import { ChangeProductStatusUseCase } from '../application/use-cases/change-product-status.use-case';
@@ -8,6 +22,7 @@ import { SetProductTagsUseCase } from '../application/use-cases/set-product-tags
 import { GetProductUseCase } from '../application/use-cases/get-product.use-case';
 import { ListProductsUseCase } from '../application/use-cases/list-products.use-case';
 import { GetProductDetailUseCase } from '../application/use-cases/get-product-detail.use-case';
+import type { ProductPlacementValue } from '../domain/constants/product-placement.constants';
 import { CreateProductDto } from '../application/dto/create-product.dto';
 import { UpdateProductDto } from '../application/dto/update-product.dto';
 import { ChangeProductStatusDto } from '../application/dto/change-product-status.dto';
@@ -18,7 +33,10 @@ import { ProductResponseDto } from '../application/dto/product-response.dto';
 import { ProductVariantResponseDto } from '../application/dto/product-variant-response.dto';
 import { ProductMediaResponseDto } from '../application/dto/product-media-response.dto';
 import { ProductSpecificationResponseDto } from '../application/dto/product-specification-response.dto';
-import { paginate, type PaginatedResult } from '../../../shared/pagination/paginate';
+import {
+  paginate,
+  type PaginatedResult,
+} from '../../../shared/pagination/paginate';
 import { RequirePermission } from '../../../shared/decorators/require-permission.decorator';
 import { PERMISSION_KEYS } from '../../identity/domain/constants/permissions.constants';
 
@@ -54,14 +72,19 @@ export class ProductsController {
   @RequirePermission(PERMISSION_KEYS.PRODUCTS_MANAGE)
   @ApiCreatedResponse({ type: ProductResponseDto })
   async create(@Body() dto: CreateProductDto): Promise<ProductResponseDto> {
-    const product = await this.createProduct.execute(dto);
+    const product = await this.createProduct.execute({
+      ...dto,
+      placements: dto.placements as ProductPlacementValue[] | undefined,
+    });
     return ProductResponseDto.fromDomain(product);
   }
 
   @Get()
   @RequirePermission(PERMISSION_KEYS.PRODUCTS_VIEW)
   @ApiOkResponse({ type: ProductResponseDto, isArray: true })
-  async list(@Query() query: ListProductsQueryDto): Promise<PaginatedResult<ProductResponseDto>> {
+  async list(
+    @Query() query: ListProductsQueryDto,
+  ): Promise<PaginatedResult<ProductResponseDto>> {
     const products = await this.listProducts.execute({
       status: query.status,
       categoryId: query.categoryId,
@@ -70,7 +93,9 @@ export class ProductsController {
       isBestSeller: query.isBestSeller,
       isNewArrival: query.isNewArrival,
     });
-    const dtos = products.map((product) => ProductResponseDto.fromDomain(product));
+    const dtos = products.map((product) =>
+      ProductResponseDto.fromDomain(product),
+    );
     return paginate(dtos, query, {
       searchableFields: ['name', 'sku'],
       sortableFields: ['name', 'sku', 'status', 'price'],
@@ -92,17 +117,28 @@ export class ProductsController {
     const detail = await this.getProductDetail.execute({ productId: id });
     return {
       product: ProductResponseDto.fromDomain(detail.product),
-      variants: detail.variants.map((variant) => ProductVariantResponseDto.fromDomain(variant)),
+      variants: detail.variants.map((variant) =>
+        ProductVariantResponseDto.fromDomain(variant),
+      ),
       media: detail.media.map((item) => ProductMediaResponseDto.fromItem(item)),
-      specifications: detail.specifications.map((item) => ProductSpecificationResponseDto.fromItem(item)),
+      specifications: detail.specifications.map((item) =>
+        ProductSpecificationResponseDto.fromItem(item),
+      ),
     };
   }
 
   @Patch(':id')
   @RequirePermission(PERMISSION_KEYS.PRODUCTS_MANAGE)
   @ApiOkResponse({ type: ProductResponseDto })
-  async update(@Param('id') id: string, @Body() dto: UpdateProductDto): Promise<ProductResponseDto> {
-    const product = await this.updateProduct.execute({ productId: id, ...dto });
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateProductDto,
+  ): Promise<ProductResponseDto> {
+    const product = await this.updateProduct.execute({
+      productId: id,
+      ...dto,
+      placements: dto.placements as ProductPlacementValue[] | undefined,
+    });
     return ProductResponseDto.fromDomain(product);
   }
 
@@ -113,7 +149,10 @@ export class ProductsController {
     @Param('id') id: string,
     @Body() dto: ChangeProductStatusDto,
   ): Promise<ProductResponseDto> {
-    const product = await this.changeProductStatus.execute({ productId: id, status: dto.status });
+    const product = await this.changeProductStatus.execute({
+      productId: id,
+      status: dto.status,
+    });
     return ProductResponseDto.fromDomain(product);
   }
 
@@ -124,14 +163,20 @@ export class ProductsController {
     @Param('id') id: string,
     @Body() dto: UpdateProductContentDto,
   ): Promise<ProductResponseDto> {
-    const product = await this.updateProductContent.execute({ productId: id, ...dto });
+    const product = await this.updateProductContent.execute({
+      productId: id,
+      ...dto,
+    });
     return ProductResponseDto.fromDomain(product);
   }
 
   @Put(':id/tags')
   @RequirePermission(PERMISSION_KEYS.PRODUCTS_MANAGE)
   @ApiOkResponse({ description: 'Tags replaced.' })
-  async setTags(@Param('id') id: string, @Body() dto: SetProductTagsDto): Promise<{ replaced: true }> {
+  async setTags(
+    @Param('id') id: string,
+    @Body() dto: SetProductTagsDto,
+  ): Promise<{ replaced: true }> {
     await this.setProductTags.execute({ productId: id, tagIds: dto.tagIds });
     return { replaced: true };
   }

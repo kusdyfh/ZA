@@ -46,3 +46,10 @@ infrastructure/docker/volumes/
 # Misc
 *.pem
 .eslintcache
+
+# Locally-uploaded media (apps/api/src/modules/catalog/http/media-upload.controller.ts)
+apps/api/uploads/
+
+# Local-only raw source photos (not part of the app; used to upload product media manually)
+.heic-preview/
+صور المنتجات/

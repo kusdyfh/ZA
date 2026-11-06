@@ -1,8 +1,14 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { ORDER_REPOSITORY, type OrderRepository } from '../../../orders/domain/repositories/order.repository';
+import {
+  ORDER_REPOSITORY,
+  type OrderRepository,
+} from '../../../orders/domain/repositories/order.repository';
 import { Shipment } from '../../domain/entities/shipment.entity';
-import { SHIPMENT_REPOSITORY, type ShipmentRepository } from '../../domain/repositories/shipment.repository';
+import {
+  SHIPMENT_REPOSITORY,
+  type ShipmentRepository,
+} from '../../domain/repositories/shipment.repository';
 import { ShipmentNotFoundError } from '../../domain/errors/shipping.errors';
 
 export interface TrackShipmentInput {
@@ -28,8 +34,15 @@ export class TrackShipmentUseCase {
 
   async execute(input: TrackShipmentInput): Promise<Shipment> {
     const storeId = await this.storeContext.getCurrentStoreId();
-    const order = await this.orders.findByOrderNumber(storeId, input.orderNumber);
-    if (!order || order.customerEmailSnapshot.toLowerCase() !== input.email.toLowerCase()) {
+    const order = await this.orders.findByOrderNumber(
+      storeId,
+      input.orderNumber,
+    );
+    if (
+      !order ||
+      !order.customerEmailSnapshot ||
+      order.customerEmailSnapshot.toLowerCase() !== input.email.toLowerCase()
+    ) {
       throw new ShipmentNotFoundError(input.orderNumber);
     }
 

@@ -13,13 +13,8 @@ import {
 } from 'lucide-react';
 import { Heading, Skeleton } from '@za/ui';
 import { cn } from '@za/shared';
-import {
-  useBestSellersQuery,
-  useFeaturedProductsQuery,
-  useNewArrivalsQuery,
-} from '@/features/products/api';
+import { useProductsByPlacementQuery } from '@/features/products/api';
 import { ProductGrid } from '@/features/products/components/product-grid';
-import type { Product } from '@/features/products/types';
 import {
   ArtStoryWall,
   BrandHero,
@@ -142,46 +137,26 @@ const LIFESTYLE_MOMENTS = [
   },
 ];
 
-/** De-dupes across the three curated lists and caps at 10 — the "10 Products Showcase" pool. */
-function pickTenProducts(...lists: (Product[] | undefined)[]): Product[] {
-  const seen = new Set<string>();
-  const picked: Product[] = [];
-  for (const list of lists) {
-    for (const product of list ?? []) {
-      if (seen.has(product.id) || picked.length >= 10) continue;
-      seen.add(product.id);
-      picked.push(product);
-    }
-  }
-  return picked;
-}
-
 export function HomeContent() {
-  const featured = useFeaturedProductsQuery();
-  const bestSellers = useBestSellersQuery();
-  const newArrivals = useNewArrivalsQuery();
+  // Each homepage section is its own admin-curated placement (product →
+  // "Homepage placement" checkboxes) — independent of each other and of
+  // isFeatured/isBestSeller/isNewArrival (those stay /shop's filter tags).
+  const homeHero = useProductsByPlacementQuery('HOME_HERO', 1);
+  const artStoryWall = useProductsByPlacementQuery('ART_STORY_WALL', 6);
+  const tenProductsShowcase = useProductsByPlacementQuery(
+    'TEN_PRODUCTS_SHOWCASE',
+    10,
+  );
+  const zaEditBook = useProductsByPlacementQuery('ZA_EDIT_BOOK', 3);
+  const dollDressUp = useProductsByPlacementQuery('DOLL_DRESS_UP', 8);
 
   const dressShowcaseSlides = [
     {
-      id: 'featured',
-      label: 'Featured Looks',
+      id: 'doll-dress-up',
+      label: "This Season's Edit",
       icon: Stethoscope,
-      tone: 'rose' as const,
-      products: featured.data ?? [],
-    },
-    {
-      id: 'best-sellers',
-      label: 'Fan Favorites',
-      icon: GraduationCap,
       tone: 'plum' as const,
-      products: bestSellers.data ?? [],
-    },
-    {
-      id: 'new-arrivals',
-      label: 'Fresh Arrivals',
-      icon: Moon,
-      tone: 'lavender' as const,
-      products: newArrivals.data ?? [],
+      products: dollDressUp.data ?? [],
     },
   ];
 
@@ -194,7 +169,7 @@ export function HomeContent() {
         "Soft fabrics, thoughtful pockets, and details that hold up through the longest shifts — this season's edit, chosen for the way real days actually go.",
       icon: Sparkle,
       tone: 'rose',
-      products: featured.data,
+      products: artStoryWall.data?.slice(0, 3),
     },
     {
       type: 'quote',
@@ -210,7 +185,7 @@ export function HomeContent() {
         'ZA Store started with a simple idea: the people who take care of everyone else deserve clothes that take care of them.',
       icon: Moon,
       tone: 'plum',
-      products: bestSellers.data,
+      products: artStoryWall.data?.slice(3, 6),
       children: (
         <Sticker tone="plum" className="absolute -bottom-3 right-4">
           Est. for long shifts
@@ -219,13 +194,8 @@ export function HomeContent() {
     },
   ];
 
-  const tenProducts = pickTenProducts(
-    featured.data,
-    bestSellers.data,
-    newArrivals.data,
-  );
-  const isTenProductsLoading =
-    featured.isLoading || bestSellers.isLoading || newArrivals.isLoading;
+  const tenProducts = tenProductsShowcase.data ?? [];
+  const isTenProductsLoading = tenProductsShowcase.isLoading;
 
   return (
     // ADR 0029 §11 — the whole homepage renders on a fixed light brand
@@ -239,7 +209,7 @@ export function HomeContent() {
         subtitle="Premium scrubs and lab coats made for long shifts, designed to feel like yours."
         ctaLabel="Shop now"
         ctaHref="/shop"
-        product={featured.data?.[0]}
+        product={homeHero.data?.[0]}
       />
 
       {/* Brand statement — the hand-lettered tagline, right after the hero
@@ -320,9 +290,10 @@ export function HomeContent() {
         />
       </section>
 
-      {/* The ZA Edit — three of the pooled products as a page-turning lookbook
-          (blush, between the cream product grid and the lavender Dress-Up). */}
-      <ProductLookbook products={tenProducts} />
+      {/* The ZA Edit — its own "The Book (ZA Edit)" placement, as a
+          page-turning lookbook (blush, between the cream product grid and
+          the lavender Dress-Up). */}
+      <ProductLookbook products={zaEditBook.data ?? []} />
 
       {/* Doll Dress-Up — a pale lavender wash, the sequence's one rare
           accent tint (ADR 0029 §4: gold/lavender, used sparingly), now with

@@ -1,8 +1,14 @@
 import { ListCollectionProductsUseCase } from './list-collection-products.use-case';
 import type { CollectionRepository } from '../../domain/repositories/collection.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Collection, type CollectionProps } from '../../domain/entities/collection.entity';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Collection,
+  type CollectionProps,
+} from '../../domain/entities/collection.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
@@ -44,6 +50,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -85,8 +92,20 @@ describe('ListCollectionProductsUseCase', () => {
   it('excludes archived products from the live listing', async () => {
     collections.findById.mockResolvedValue(buildCollection());
     collections.listProducts.mockResolvedValue([
-      { product: buildProduct({ id: 'active-1', status: PRODUCT_STATUS.ACTIVE }), sortOrder: 0 },
-      { product: buildProduct({ id: 'archived-1', status: PRODUCT_STATUS.ARCHIVED }), sortOrder: 1 },
+      {
+        product: buildProduct({
+          id: 'active-1',
+          status: PRODUCT_STATUS.ACTIVE,
+        }),
+        sortOrder: 0,
+      },
+      {
+        product: buildProduct({
+          id: 'archived-1',
+          status: PRODUCT_STATUS.ARCHIVED,
+        }),
+        sortOrder: 1,
+      },
     ]);
 
     const result = await useCase.execute({ collectionId: 'col-1' });

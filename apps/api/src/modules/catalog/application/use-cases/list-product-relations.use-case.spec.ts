@@ -1,6 +1,9 @@
 import { ListProductRelationsUseCase } from './list-product-relations.use-case';
 import type { ProductRelationRepository } from '../../domain/repositories/product-relation.repository';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
@@ -25,6 +28,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,

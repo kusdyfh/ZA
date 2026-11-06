@@ -1,4 +1,11 @@
-import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import {
+  IsEmail,
+  IsIn,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { IRAQ_GOVERNORATE_NAMES } from '@za/shared';
 import { PAYMENT_METHOD } from '../../../orders/domain/constants/payment-method.constants';
 
 export class PlaceOrderDto {
@@ -10,9 +17,10 @@ export class PlaceOrderDto {
   @IsNotEmpty()
   customerName!: string;
 
-  @IsString()
-  @IsNotEmpty()
-  customerEmail!: string;
+  /** Optional at checkout (product decision) — phone is required instead. */
+  @IsEmail()
+  @IsOptional()
+  customerEmail?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -38,12 +46,11 @@ export class PlaceOrderDto {
   @IsNotEmpty()
   shippingCity!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  /** Delivery is Iraq-only (product decision) — a closed list, not free text. */
+  @IsIn(IRAQ_GOVERNORATE_NAMES)
   shippingGovernorate!: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @IsIn(['Iraq'])
   shippingCountry!: string;
 
   @IsString()

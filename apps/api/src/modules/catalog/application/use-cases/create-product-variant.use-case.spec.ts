@@ -4,8 +4,14 @@ import type { ProductRepository } from '../../domain/repositories/product.reposi
 import type { ColorRepository } from '../../domain/repositories/color.repository';
 import type { SizeRepository } from '../../domain/repositories/size.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
-import { ProductVariant, type ProductVariantProps } from '../../domain/entities/product-variant.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
+import {
+  ProductVariant,
+  type ProductVariantProps,
+} from '../../domain/entities/product-variant.entity';
 import { Color, type ColorProps } from '../../domain/entities/color.entity';
 import { Size, type SizeProps } from '../../domain/entities/size.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
@@ -39,6 +45,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -72,7 +79,9 @@ function buildSize(overrides: Partial<SizeProps> = {}): Size {
   });
 }
 
-function buildVariant(overrides: Partial<ProductVariantProps> = {}): ProductVariant {
+function buildVariant(
+  overrides: Partial<ProductVariantProps> = {},
+): ProductVariant {
   return ProductVariant.reconstitute({
     id: 'variant-existing',
     storeId: 'store-1',
@@ -137,7 +146,13 @@ describe('CreateProductVariantUseCase', () => {
     storeContext = {
       getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
     } as unknown as StoreContext;
-    useCase = new CreateProductVariantUseCase(variants, products, colors, sizes, storeContext);
+    useCase = new CreateProductVariantUseCase(
+      variants,
+      products,
+      colors,
+      sizes,
+      storeContext,
+    );
   });
 
   it('creates a variant when everything is valid', async () => {
@@ -156,7 +171,11 @@ describe('CreateProductVariantUseCase', () => {
     });
 
     expect(variants.create).toHaveBeenCalledWith(
-      expect.objectContaining({ storeId: 'store-1', productId: 'prod-1', sku: 'NEW-SKU' }),
+      expect.objectContaining({
+        storeId: 'store-1',
+        productId: 'prod-1',
+        sku: 'NEW-SKU',
+      }),
     );
   });
 
@@ -194,9 +213,15 @@ describe('CreateProductVariantUseCase', () => {
   it('throws VariantBarcodeAlreadyInUseError when the barcode is taken', async () => {
     products.findById.mockResolvedValue(buildProduct());
     variants.findBySku.mockResolvedValue(null);
-    variants.findByBarcode.mockResolvedValue(buildVariant({ barcode: '12345' }));
+    variants.findByBarcode.mockResolvedValue(
+      buildVariant({ barcode: '12345' }),
+    );
     await expect(
-      useCase.execute({ productId: 'prod-1', sku: 'NEW-SKU', barcode: '12345' }),
+      useCase.execute({
+        productId: 'prod-1',
+        sku: 'NEW-SKU',
+        barcode: '12345',
+      }),
     ).rejects.toThrow(VariantBarcodeAlreadyInUseError);
   });
 
@@ -208,7 +233,12 @@ describe('CreateProductVariantUseCase', () => {
     variants.listByProduct.mockResolvedValue([buildVariant()]);
 
     await expect(
-      useCase.execute({ productId: 'prod-1', sku: 'NEW-SKU', colorId: 'color-1', sizeId: 'size-1' }),
+      useCase.execute({
+        productId: 'prod-1',
+        sku: 'NEW-SKU',
+        colorId: 'color-1',
+        sizeId: 'size-1',
+      }),
     ).rejects.toThrow(DuplicateVariantAttributesError);
     expect(variants.create).not.toHaveBeenCalled();
   });

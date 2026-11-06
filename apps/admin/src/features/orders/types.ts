@@ -44,7 +44,7 @@ export interface Order {
   orderNumber: string;
   status: OrderStatus;
   customerNameSnapshot: string;
-  customerEmailSnapshot: string;
+  customerEmailSnapshot: string | null;
   customerPhoneSnapshot: string;
   shippingFullName: string;
   shippingPhone: string;

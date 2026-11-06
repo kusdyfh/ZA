@@ -23,7 +23,7 @@ export interface CreateOrderData {
   customerId?: string | null;
 
   customerNameSnapshot: string;
-  customerEmailSnapshot: string;
+  customerEmailSnapshot: string | null;
   customerPhoneSnapshot: string;
 
   shippingFullName: string;
@@ -67,7 +67,10 @@ export interface ChangeOrderStatusOptions {
 export interface OrderRepository {
   create(data: CreateOrderData): Promise<Order>;
   findById(storeId: string, id: string): Promise<Order | null>;
-  findByOrderNumber(storeId: string, orderNumber: string): Promise<Order | null>;
+  findByOrderNumber(
+    storeId: string,
+    orderNumber: string,
+  ): Promise<Order | null>;
   list(storeId: string, filters?: OrderListFilters): Promise<Order[]>;
   changeStatus(
     orderId: string,
@@ -76,7 +79,12 @@ export interface OrderRepository {
     actor: ActorRef,
     options?: ChangeOrderStatusOptions,
   ): Promise<Order>;
-  addNote(orderId: string, body: string, isInternal: boolean, actor: ActorRef): Promise<Order>;
+  addNote(
+    orderId: string,
+    body: string,
+    isInternal: boolean,
+    actor: ActorRef,
+  ): Promise<Order>;
   /**
    * Epic 12 (ADR 0026) — the one path that changes `paymentStatus`
    * *without* an order-status transition (e.g. a refund issued after an
@@ -86,7 +94,12 @@ export interface OrderRepository {
    * path when a transition legitimately happens too, e.g. COD/CARD
    * confirmation — this method does not replace it.
    */
-  updatePaymentStatus(orderId: string, status: PaymentStatusValue, note: string | null, actor: ActorRef): Promise<Order>;
+  updatePaymentStatus(
+    orderId: string,
+    status: PaymentStatusValue,
+    note: string | null,
+    actor: ActorRef,
+  ): Promise<Order>;
   /** Epic 8 (Customer Accounts) — order history, docs/v2/adr/0018. */
   listByCustomerId(customerId: string): Promise<Order[]>;
   /**
@@ -94,5 +107,9 @@ export interface OrderRepository {
    * every order matching `customerEmailSnapshot` with no `customerId`
    * yet. Returns the number of orders updated.
    */
-  associateGuestOrders(storeId: string, email: string, customerId: string): Promise<number>;
+  associateGuestOrders(
+    storeId: string,
+    email: string,
+    customerId: string,
+  ): Promise<number>;
 }

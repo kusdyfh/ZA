@@ -1,7 +1,10 @@
 import { GetPublicProductBySlugUseCase } from './get-public-product-by-slug.use-case';
 import type { ProductRepository } from '../../domain/repositories/product.repository';
 import type { StoreContext } from '../../../../infrastructure/store/store-context.service';
-import { Product, type ProductProps } from '../../domain/entities/product.entity';
+import {
+  Product,
+  type ProductProps,
+} from '../../domain/entities/product.entity';
 import { Slug } from '../../domain/value-objects/slug.vo';
 import { Money } from '../../domain/value-objects/money.vo';
 import { SeoMetadata } from '../../domain/value-objects/seo-metadata.vo';
@@ -26,6 +29,7 @@ function buildProduct(overrides: Partial<ProductProps> = {}): Product {
     isBestSeller: false,
     isNewArrival: false,
     isGiftBox: false,
+    placements: [],
     seo: SeoMetadata.create({}),
     highlights: [],
     richContent: null,
@@ -52,7 +56,9 @@ describe('GetPublicProductBySlugUseCase', () => {
       replaceTags: jest.fn(),
       listTagIds: jest.fn(),
     };
-    storeContext = { getCurrentStoreId: jest.fn().mockResolvedValue('store-1') } as unknown as StoreContext;
+    storeContext = {
+      getCurrentStoreId: jest.fn().mockResolvedValue('store-1'),
+    } as unknown as StoreContext;
     useCase = new GetPublicProductBySlugUseCase(products, storeContext);
   });
 
@@ -68,14 +74,18 @@ describe('GetPublicProductBySlugUseCase', () => {
 
   it('throws ProductNotFoundError when no product exists at that slug', async () => {
     products.findBySlug.mockResolvedValue(null);
-    await expect(useCase.execute({ slug: 'missing' })).rejects.toThrow(ProductNotFoundError);
+    await expect(useCase.execute({ slug: 'missing' })).rejects.toThrow(
+      ProductNotFoundError,
+    );
   });
 
   it.each([PRODUCT_STATUS.DRAFT, PRODUCT_STATUS.ARCHIVED])(
     'throws ProductNotFoundError for a %s product (never reveals non-ACTIVE products)',
     async (status) => {
       products.findBySlug.mockResolvedValue(buildProduct({ status }));
-      await expect(useCase.execute({ slug: 'product' })).rejects.toThrow(ProductNotFoundError);
+      await expect(useCase.execute({ slug: 'product' })).rejects.toThrow(
+        ProductNotFoundError,
+      );
     },
   );
 });

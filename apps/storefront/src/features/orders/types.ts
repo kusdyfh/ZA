@@ -10,6 +10,18 @@ export const ORDER_STATUSES = [
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
+export interface PhoneVerificationRequestResult {
+  phone: string;
+  expiresInSeconds: number;
+  /** Only present outside production (dev/test convenience — no real WhatsApp account yet). */
+  code?: string;
+}
+
+export interface PhoneVerificationConfirmResult {
+  phone: string;
+  verified: true;
+}
+
 export interface OrderItem {
   id: string;
   variantId: string | null;
@@ -39,7 +51,7 @@ export interface Order {
   orderNumber: string;
   status: OrderStatus;
   customerNameSnapshot: string;
-  customerEmailSnapshot: string;
+  customerEmailSnapshot: string | null;
   customerPhoneSnapshot: string;
   shippingFullName: string;
   shippingPhone: string;
@@ -67,7 +79,7 @@ export interface Order {
 export interface PlaceOrderInput {
   guestToken: string;
   customerName: string;
-  customerEmail: string;
+  customerEmail?: string;
   customerPhone: string;
   shippingFullName: string;
   shippingPhone: string;
