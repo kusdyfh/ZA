@@ -21,8 +21,14 @@ import { useSizesQuery } from '@/features/sizes/api';
 const variantSchema = z.object({
   sku: z.string().min(1, 'SKU is required'),
   barcode: z.string().optional(),
-  colorId: z.string().optional(),
-  sizeId: z.string().optional(),
+  colorId: z
+    .string()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
+  sizeId: z
+    .string()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   priceOverride: z.coerce
     .number()
     .min(0)
