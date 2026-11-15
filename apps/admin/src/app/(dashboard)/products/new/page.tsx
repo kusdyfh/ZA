@@ -32,11 +32,11 @@ const productSchema = z.object({
   shortDescription: z.string().optional(),
   description: z.string().optional(),
   price: z.coerce.number().min(0, 'Price must be 0 or more'),
-  discountPrice: z.coerce
-    .number()
-    .min(0)
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
+  // Preprocess, not .or(''): z.coerce turns '' into 0, saving a blank field as a 100% discount.
+  discountPrice: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().min(0).optional(),
+  ),
   categoryId: z.string().min(1, 'Category is required'),
   brandId: z
     .string()

@@ -29,11 +29,11 @@ const variantSchema = z.object({
     .string()
     .optional()
     .or(z.literal('').transform(() => undefined)),
-  priceOverride: z.coerce
-    .number()
-    .min(0)
-    .optional()
-    .or(z.literal('').transform(() => undefined)),
+  // Preprocess, not .or(''): z.coerce turns '' into 0, saving a blank field as a free variant.
+  priceOverride: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().min(0).optional(),
+  ),
 });
 
 type VariantFormValues = z.infer<typeof variantSchema>;
