@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -9,6 +10,10 @@ import {
   Min,
 } from 'class-validator';
 import { PRODUCT_PLACEMENTS } from '../../domain/constants/product-placement.constants';
+
+/** An empty string from an admin form's "no selection" state means the same as omitting the field. */
+const undefinedIfEmpty = ({ value }: { value: unknown }): unknown =>
+  value === '' ? undefined : value;
 
 export class CreateProductDto {
   @IsString()
@@ -44,6 +49,7 @@ export class CreateProductDto {
   @IsNotEmpty()
   categoryId!: string;
 
+  @Transform(undefinedIfEmpty)
   @IsString()
   @IsOptional()
   brandId?: string;

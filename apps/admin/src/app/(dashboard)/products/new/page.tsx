@@ -38,7 +38,10 @@ const productSchema = z.object({
     .optional()
     .or(z.literal('').transform(() => undefined)),
   categoryId: z.string().min(1, 'Category is required'),
-  brandId: z.string().optional(),
+  brandId: z
+    .string()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   isFeatured: z.boolean().optional(),
   isBestSeller: z.boolean().optional(),
   isNewArrival: z.boolean().optional(),

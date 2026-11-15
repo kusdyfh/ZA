@@ -35,7 +35,10 @@ const categorySchema = z.object({
   slug: z.string().optional(),
   description: z.string().optional(),
   sortOrder: z.coerce.number().int().optional(),
-  parentId: z.string().optional(),
+  parentId: z
+    .string()
+    .optional()
+    .or(z.literal('').transform(() => undefined)),
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
 });
@@ -58,16 +61,31 @@ function CategoryForm({
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<CategoryFormValues>({ resolver: zodResolver(categorySchema), defaultValues });
+  } = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+    defaultValues,
+  });
 
   const parentOptions = (allCategories?.data ?? [])
     .filter((category) => category.id !== excludeId)
     .map((category) => ({ value: category.id, label: category.name }));
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={handleSubmit(onSubmit)} noValidate>
-      <Input label="Name" errorText={errors.name?.message} {...register('name')} />
-      <Input label="Slug" helperText="Leave blank to auto-generate" {...register('slug')} />
+    <form
+      className="flex flex-col gap-4"
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+    >
+      <Input
+        label="Name"
+        errorText={errors.name?.message}
+        {...register('name')}
+      />
+      <Input
+        label="Slug"
+        helperText="Leave blank to auto-generate"
+        {...register('slug')}
+      />
       <Textarea label="Description" {...register('description')} />
       <Select
         label="Parent category"
@@ -84,9 +102,23 @@ function CategoryForm({
 }
 
 export default function CategoriesPage() {
-  const { page, limit, search, sort, setPage, setLimit, setSearch, toggleSort, sortParam } =
-    useTableState();
-  const { data, isLoading, isError } = useCategoriesQuery({ page, limit, search, sort: sortParam });
+  const {
+    page,
+    limit,
+    search,
+    sort,
+    setPage,
+    setLimit,
+    setSearch,
+    toggleSort,
+    sortParam,
+  } = useTableState();
+  const { data, isLoading, isError } = useCategoriesQuery({
+    page,
+    limit,
+    search,
+    sort: sortParam,
+  });
   const createMutation = useCreateCategoryMutation();
   const updateMutation = useUpdateCategoryMutation();
   const setActiveMutation = useSetCategoryActiveMutation();
@@ -95,7 +127,9 @@ export default function CategoriesPage() {
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
+  const [deletingCategory, setDeletingCategory] = useState<Category | null>(
+    null,
+  );
 
   async function handleCreate(values: CategoryFormValues) {
     try {
@@ -103,7 +137,11 @@ export default function CategoriesPage() {
       showToast({ tone: 'success', title: 'Category created' });
       setIsCreateOpen(false);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not create category', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not create category',
+        description: describeError(error),
+      });
     }
   }
 
@@ -114,15 +152,26 @@ export default function CategoriesPage() {
       showToast({ tone: 'success', title: 'Category updated' });
       setEditingCategory(null);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not update category', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not update category',
+        description: describeError(error),
+      });
     }
   }
 
   async function handleToggleActive(category: Category) {
     try {
-      await setActiveMutation.mutateAsync({ id: category.id, isActive: !category.isActive });
+      await setActiveMutation.mutateAsync({
+        id: category.id,
+        isActive: !category.isActive,
+      });
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not change status', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not change status',
+        description: describeError(error),
+      });
     }
   }
 
@@ -133,7 +182,11 @@ export default function CategoriesPage() {
       showToast({ tone: 'success', title: 'Category deleted' });
       setDeletingCategory(null);
     } catch (error) {
-      showToast({ tone: 'danger', title: 'Could not delete category', description: describeError(error) });
+      showToast({
+        tone: 'danger',
+        title: 'Could not delete category',
+        description: describeError(error),
+      });
     }
   }
 
@@ -147,7 +200,10 @@ export default function CategoriesPage() {
         title="Categories"
         description="The hierarchy products are organized under."
         action={
-          <Button leadingIcon={<Plus className="h-4 w-4" />} onClick={() => setIsCreateOpen(true)}>
+          <Button
+            leadingIcon={<Plus className="h-4 w-4" />}
+            onClick={() => setIsCreateOpen(true)}
+          >
             Add category
           </Button>
         }
@@ -162,7 +218,12 @@ export default function CategoriesPage() {
       </div>
       <DataTable
         columns={[
-          { key: 'name', header: 'Name', sortable: true, render: (row: Category) => row.name },
+          {
+            key: 'name',
+            header: 'Name',
+            sortable: true,
+            render: (row: Category) => row.name,
+          },
           { key: 'slug', header: 'Slug', render: (row: Category) => row.slug },
           {
             key: 'sortOrder',
@@ -175,7 +236,11 @@ export default function CategoriesPage() {
             key: 'isActive',
             header: 'Active',
             render: (row: Category) => (
-              <Switch checked={row.isActive} onChange={() => handleToggleActive(row)} label={row.isActive ? 'Active' : 'Inactive'} />
+              <Switch
+                checked={row.isActive}
+                onChange={() => handleToggleActive(row)}
+                label={row.isActive ? 'Active' : 'Inactive'}
+              />
             ),
           },
           {
@@ -196,7 +261,7 @@ export default function CategoriesPage() {
                   type="button"
                   aria-label={`Delete ${row.name}`}
                   onClick={() => setDeletingCategory(row)}
-                  className="rounded-md p-1.5 text-neutral-500 hover:bg-danger-500/10 hover:text-danger-500 dark:text-neutral-400"
+                  className="hover:bg-danger-500/10 hover:text-danger-500 rounded-md p-1.5 text-neutral-500 dark:text-neutral-400"
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -211,17 +276,38 @@ export default function CategoriesPage() {
         onSortChange={toggleSort}
         emptyTitle="No categories yet"
         emptyDescription="Create your first category to start organizing products."
-        emptyAction={<Button onClick={() => setIsCreateOpen(true)}>Add category</Button>}
+        emptyAction={
+          <Button onClick={() => setIsCreateOpen(true)}>Add category</Button>
+        }
       />
       {data && (
-        <Pagination page={page} totalPages={data.meta.totalPages} limit={limit} onPageChange={setPage} onLimitChange={setLimit} />
+        <Pagination
+          page={page}
+          totalPages={data.meta.totalPages}
+          limit={limit}
+          onPageChange={setPage}
+          onLimitChange={setLimit}
+        />
       )}
 
-      <Dialog open={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Add category" size="lg">
-        <CategoryForm onSubmit={handleCreate} isSubmitting={createMutation.isPending} />
+      <Dialog
+        open={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        title="Add category"
+        size="lg"
+      >
+        <CategoryForm
+          onSubmit={handleCreate}
+          isSubmitting={createMutation.isPending}
+        />
       </Dialog>
 
-      <Dialog open={editingCategory !== null} onClose={() => setEditingCategory(null)} title="Edit category" size="lg">
+      <Dialog
+        open={editingCategory !== null}
+        onClose={() => setEditingCategory(null)}
+        title="Edit category"
+        size="lg"
+      >
         {editingCategory && (
           <CategoryForm
             excludeId={editingCategory.id}
@@ -250,7 +336,11 @@ export default function CategoriesPage() {
             <Button variant="outline" onClick={() => setDeletingCategory(null)}>
               Cancel
             </Button>
-            <Button variant="destructive" isLoading={deleteMutation.isPending} onClick={handleDelete}>
+            <Button
+              variant="destructive"
+              isLoading={deleteMutation.isPending}
+              onClick={handleDelete}
+            >
               Delete
             </Button>
           </>
