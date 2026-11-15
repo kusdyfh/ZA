@@ -55,7 +55,16 @@ export const IRAQ_GOVERNORATES: readonly IraqGovernorate[] = [
   },
   {
     name: 'Erbil',
-    cities: ['Erbil', 'Koisanjaq', 'Shaqlawa', 'Soran', 'Mergasur', 'Choman'],
+    cities: [
+      'Erbil',
+      'Dashti Hawler',
+      'Koisanjaq',
+      'Shaqlawa',
+      'Soran',
+      'Mergasur',
+      'Choman',
+      'Taqtaq',
+    ],
   },
   {
     name: 'Sulaymaniyah',
@@ -70,9 +79,14 @@ export const IRAQ_GOVERNORATES: readonly IraqGovernorate[] = [
       'Penjwin',
       'Mawat',
       'Qaradagh',
+      'Pshdar',
+      'Saidsadiq',
+      'Sharazoor',
       'Halabja',
       'Sirwan',
       'Khurmal',
+      'Byara',
+      'Bamo',
     ],
   },
   {
