@@ -25,6 +25,12 @@ async function bootstrap(): Promise<void> {
   // would be, so the Media tab's "url" field works unchanged.
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads' });
 
+  // Behind Railway's (or any) TLS-terminating proxy, the app itself only
+  // ever sees plain HTTP — without this, req.protocol is always "http",
+  // so MediaUploadController would build http:// URLs for a site served
+  // over https, which browsers then block as mixed content.
+  app.set('trust proxy', 1);
+
   const logger = app.get(Logger);
   app.useLogger(logger);
 
